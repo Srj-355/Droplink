@@ -1,23 +1,164 @@
+// import { useState, useRef, useEffect } from "react";
+
+// export default function ChatPanel({ messages, connected, onSend }) {
+//   const [input, setInput] = useState("");
+//   const endRef = useRef(null);
+
+//   useEffect(() => {
+//     endRef.current?.scrollIntoView({ behavior: "smooth" });
+//   }, [messages]);
+
+//   const handleSend = () => {
+//     if (!input.trim() || !connected) return;
+//     const sent = onSend(input);
+//     if (sent !== false) setInput("");
+//   };
+
+//   return (
+//     <div style={s.panel}>
+//       <div style={s.head}>
+//         <span>💬</span> Live Chat
+//       </div>
+
+//       <div style={s.msgs}>
+//         {messages.length === 0 && (
+//           <div className="empty-hint">Messages appear here once connected</div>
+//         )}
+//         {messages.map((m) => (
+//           <div
+//             key={m.id}
+//             style={{
+//               ...s.wrap,
+//               alignItems:
+//                 m.type === "system" ? "center" :
+//                 m.sender === "me"   ? "flex-end" : "flex-start",
+//             }}
+//           >
+//             <div
+//               style={{
+//                 ...s.msg,
+//                 ...(m.type === "system" ? s.msgSystem :
+//                     m.sender === "me"   ? s.msgMe : s.msgThem),
+//               }}
+//             >
+//               {m.text}
+//             </div>
+//             {m.time && m.type !== "system" && (
+//               <div
+//                 style={{
+//                   ...s.time,
+//                   textAlign: m.sender === "me" ? "right" : "left",
+//                 }}
+//               >
+//                 {m.time}
+//               </div>
+//             )}
+//           </div>
+//         ))}
+//         <div ref={endRef} />
+//       </div>
+
+//       <div style={s.inputRow}>
+//         <input
+//           style={s.inp}
+//           placeholder={connected ? "Type a message…" : "Waiting for peer…"}
+//           value={input}
+//           disabled={!connected}
+//           onChange={(e) => setInput(e.target.value)}
+//           onKeyDown={(e) => {
+//             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+//           }}
+//         />
+//         <button
+//           style={{ ...s.sendBtn, ...((!connected || !input.trim()) ? s.sendDisabled : {}) }}
+//           onClick={handleSend}
+//           disabled={!connected || !input.trim()}
+//         >
+//           ↑
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+
+// const s = {
+//   panel: {
+//     display: "flex", flexDirection: "column",
+//     background: "#0c1220", border: "1px solid #1a2540",
+//     borderRadius: 12, overflow: "hidden",
+//   },
+//   head: {
+//     padding: "0.65rem 0.9rem",
+//     borderBottom: "1px solid #1a2540",
+//     fontFamily: "'Syne', sans-serif", fontSize: "0.8rem", fontWeight: 600,
+//     color: "#6b7fa3",
+//     display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0,
+//   },
+//   msgs: {
+//     flex: 1, overflowY: "auto",
+//     padding: "0.7rem", display: "flex",
+//     flexDirection: "column", gap: "0.35rem",
+//     minHeight: 0,
+//   },
+//   wrap: { display: "flex", flexDirection: "column" },
+//   msg: {
+//     maxWidth: "88%", padding: "0.38rem 0.65rem",
+//     borderRadius: 9, fontSize: "0.75rem", lineHeight: 1.55,
+//     wordBreak: "break-word",
+//   },
+//   msgMe: {
+//     background: "#3b82f6", color: "#fff",
+//     borderBottomRightRadius: 2,
+//   },
+//   msgThem: {
+//     background: "#111827", color: "#e2e8f0",
+//     border: "1px solid #1a2540",
+//     borderBottomLeftRadius: 2,
+//   },
+//   msgSystem: {
+//     background: "transparent", color: "#6b7fa3",
+//     fontSize: "0.66rem", textAlign: "center",
+//     padding: "0.15rem 0.4rem",
+//   },
+//   time: { fontSize: "0.58rem", color: "#6b7fa3", marginTop: "0.1rem", padding: "0 0.2rem" },
+//   inputRow: {
+//     display: "flex", gap: "0.45rem",
+//     padding: "0.65rem 0.7rem",
+//     borderTop: "1px solid #1a2540", flexShrink: 0,
+//   },
+//   inp: {
+//     flex: 1,
+//     background: "#111827", border: "1px solid #1a2540",
+//     borderRadius: 8, padding: "0.45rem 0.7rem",
+//     color: "#e2e8f0", fontFamily: "'DM Mono', monospace", fontSize: "0.76rem",
+//     outline: "none",
+//   },
+//   sendBtn: {
+//     background: "#3b82f6", border: "none", borderRadius: 8,
+//     padding: "0.45rem 0.7rem", color: "#fff", cursor: "pointer",
+//     fontSize: "0.85rem", lineHeight: 1, transition: "background 0.15s",
+//   },
+//   sendDisabled: { opacity: 0.4, cursor: "not-allowed" },
+// };
+
 import { useState, useRef, useEffect } from "react";
 
 export default function ChatPanel({ messages, connected, onSend }) {
   const [input, setInput] = useState("");
   const endRef = useRef(null);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const handleSend = () => {
     if (!input.trim() || !connected) return;
-    const sent = onSend(input);
-    if (sent !== false) setInput("");
+    if (onSend(input) !== false) setInput("");
   };
 
   return (
-    <div style={s.panel}>
+    <div style={s.panel} className="glass">
       <div style={s.head}>
-        <span>💬</span> Live Chat
+        <span style={s.headIcon}>💬</span>
+        <span style={s.headTitle}>Live Chat</span>
       </div>
 
       <div style={s.msgs}>
@@ -25,31 +166,19 @@ export default function ChatPanel({ messages, connected, onSend }) {
           <div className="empty-hint">Messages appear here once connected</div>
         )}
         {messages.map((m) => (
-          <div
-            key={m.id}
-            style={{
-              ...s.wrap,
-              alignItems:
-                m.type === "system" ? "center" :
-                m.sender === "me"   ? "flex-end" : "flex-start",
-            }}
-          >
-            <div
-              style={{
-                ...s.msg,
-                ...(m.type === "system" ? s.msgSystem :
-                    m.sender === "me"   ? s.msgMe : s.msgThem),
-              }}
-            >
+          <div key={m.id} style={{
+            ...s.wrap,
+            alignItems: m.type === "system" ? "center" : m.sender === "me" ? "flex-end" : "flex-start",
+          }}>
+            <div style={{
+              ...s.msg,
+              ...(m.type === "system" ? s.msgSys :
+                  m.sender === "me"   ? s.msgMe  : s.msgThem),
+            }}>
               {m.text}
             </div>
             {m.time && m.type !== "system" && (
-              <div
-                style={{
-                  ...s.time,
-                  textAlign: m.sender === "me" ? "right" : "left",
-                }}
-              >
+              <div style={{ ...s.time, textAlign: m.sender === "me" ? "right" : "left" }}>
                 {m.time}
               </div>
             )}
@@ -62,81 +191,48 @@ export default function ChatPanel({ messages, connected, onSend }) {
         <input
           style={s.inp}
           placeholder={connected ? "Type a message…" : "Waiting for peer…"}
-          value={input}
-          disabled={!connected}
+          value={input} disabled={!connected}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-          }}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
         />
         <button
-          style={{ ...s.sendBtn, ...((!connected || !input.trim()) ? s.sendDisabled : {}) }}
-          onClick={handleSend}
-          disabled={!connected || !input.trim()}
-        >
-          ↑
-        </button>
+          style={{ ...s.sendBtn, ...(!connected || !input.trim() ? s.sendOff : {}) }}
+          onClick={handleSend} disabled={!connected || !input.trim()}
+        >↑</button>
       </div>
     </div>
   );
 }
 
 const s = {
-  panel: {
-    display: "flex", flexDirection: "column",
-    background: "#0c1220", border: "1px solid #1a2540",
-    borderRadius: 12, overflow: "hidden",
-  },
+  panel: { display: "flex", flexDirection: "column", borderRadius: 18, overflow: "hidden", height: "100%" },
   head: {
-    padding: "0.65rem 0.9rem",
-    borderBottom: "1px solid #1a2540",
-    fontFamily: "'Syne', sans-serif", fontSize: "0.8rem", fontWeight: 600,
-    color: "#6b7fa3",
-    display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0,
+    padding: "0.7rem 1rem", borderBottom: "1px solid rgba(255,255,255,0.5)",
+    display: "flex", alignItems: "center", gap: "0.45rem", flexShrink: 0,
   },
-  msgs: {
-    flex: 1, overflowY: "auto",
-    padding: "0.7rem", display: "flex",
-    flexDirection: "column", gap: "0.35rem",
-    minHeight: 0,
-  },
+  headIcon: { fontSize: "0.9rem" },
+  headTitle: { fontSize: "0.78rem", fontWeight: 600, color: "#334155" },
+  msgs: { flex: 1, overflowY: "auto", padding: "0.8rem", display: "flex", flexDirection: "column", gap: "0.4rem", minHeight: 0 },
   wrap: { display: "flex", flexDirection: "column" },
-  msg: {
-    maxWidth: "88%", padding: "0.38rem 0.65rem",
-    borderRadius: 9, fontSize: "0.75rem", lineHeight: 1.55,
-    wordBreak: "break-word",
-  },
-  msgMe: {
-    background: "#3b82f6", color: "#fff",
-    borderBottomRightRadius: 2,
-  },
-  msgThem: {
-    background: "#111827", color: "#e2e8f0",
-    border: "1px solid #1a2540",
-    borderBottomLeftRadius: 2,
-  },
-  msgSystem: {
-    background: "transparent", color: "#6b7fa3",
-    fontSize: "0.66rem", textAlign: "center",
-    padding: "0.15rem 0.4rem",
-  },
-  time: { fontSize: "0.58rem", color: "#6b7fa3", marginTop: "0.1rem", padding: "0 0.2rem" },
-  inputRow: {
-    display: "flex", gap: "0.45rem",
-    padding: "0.65rem 0.7rem",
-    borderTop: "1px solid #1a2540", flexShrink: 0,
-  },
+  msg: { maxWidth: "88%", padding: "0.42rem 0.7rem", borderRadius: 10, fontSize: "0.76rem", lineHeight: 1.55, wordBreak: "break-word" },
+  msgMe: { background: "linear-gradient(135deg, #0ea5e9, #8b5cf6)", color: "#fff", borderBottomRightRadius: 2 },
+  msgThem: { background: "rgba(255,255,255,0.7)", color: "#0f172a", border: "1px solid rgba(255,255,255,0.8)", borderBottomLeftRadius: 2 },
+  msgSys: { background: "transparent", color: "#94a3b8", fontSize: "0.66rem", textAlign: "center", padding: "0.18rem 0.5rem" },
+  time: { fontSize: "0.58rem", color: "#94a3b8", marginTop: "0.1rem", padding: "0 0.2rem" },
+  inputRow: { display: "flex", gap: "0.5rem", padding: "0.7rem 0.85rem", borderTop: "1px solid rgba(255,255,255,0.5)", flexShrink: 0 },
   inp: {
-    flex: 1,
-    background: "#111827", border: "1px solid #1a2540",
-    borderRadius: 8, padding: "0.45rem 0.7rem",
-    color: "#e2e8f0", fontFamily: "'DM Mono', monospace", fontSize: "0.76rem",
-    outline: "none",
+    flex: 1, background: "rgba(255,255,255,0.55)",
+    border: "1px solid rgba(255,255,255,0.75)", borderRadius: 10,
+    padding: "0.48rem 0.8rem", color: "#0f172a",
+    fontFamily: "'Outfit', sans-serif", fontSize: "0.78rem", outline: "none",
+    backdropFilter: "blur(8px)", transition: "border-color 0.15s",
   },
   sendBtn: {
-    background: "#3b82f6", border: "none", borderRadius: 8,
-    padding: "0.45rem 0.7rem", color: "#fff", cursor: "pointer",
-    fontSize: "0.85rem", lineHeight: 1, transition: "background 0.15s",
+    background: "linear-gradient(135deg, #0ea5e9, #8b5cf6)",
+    border: "none", borderRadius: 10,
+    padding: "0.48rem 0.75rem", color: "#fff",
+    cursor: "pointer", fontSize: "0.9rem", lineHeight: 1,
+    boxShadow: "0 2px 8px rgba(14,165,233,0.3)",
   },
-  sendDisabled: { opacity: 0.4, cursor: "not-allowed" },
+  sendOff: { opacity: 0.4, cursor: "not-allowed" },
 };
