@@ -30,7 +30,7 @@ export default function ChatPanel({ messages, connected, onSend }) {
             <div style={{
               ...s.msg,
               ...(m.type === "system" ? s.msgSys :
-                  m.sender === "me"   ? s.msgMe  : s.msgThem),
+                m.sender === "me" ? s.msgMe : s.msgThem),
             }}>
               {m.text}
             </div>

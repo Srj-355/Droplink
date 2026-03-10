@@ -3,18 +3,18 @@
 // Chrome SCTP maxMessageSize = 262144 bytes (256 KB).
 // Our frame header adds ~28 bytes per chunk. Max safe chunk = 128 KB.
 export const CHUNK_TIERS = [
-  { maxSize: 1   * 1024 * 1024, chunkSize: 16  * 1024 }, // < 1 MB  → 16 KB
-  { maxSize: 10  * 1024 * 1024, chunkSize: 64  * 1024 }, // <10 MB  → 64 KB
-  { maxSize: Infinity,          chunkSize: 128 * 1024 }, // ≥10 MB  → 128 KB
+  { maxSize: 1 * 1024 * 1024, chunkSize: 16 * 1024 }, // < 1 MB  → 16 KB
+  { maxSize: 10 * 1024 * 1024, chunkSize: 64 * 1024 }, // <10 MB  → 64 KB
+  { maxSize: Infinity, chunkSize: 128 * 1024 }, // ≥10 MB  → 128 KB
 ];
 
-export const CHUNK_RETRY_LIMIT   = 3;
-export const CHUNK_ACK_TIMEOUT   = 8000;
-export const SPEED_UPDATE_MS     = 500;
+export const CHUNK_RETRY_LIMIT = 3;
+export const CHUNK_ACK_TIMEOUT = 8000;
+export const SPEED_UPDATE_MS = 500;
 
 // ─── Auto-reconnect ───────────────────────────────────────────────────────────
-export const RECONNECT_MAX       = 3;
-export const RECONNECT_BASE_MS   = 1500;
+export const RECONNECT_MAX = 3;
+export const RECONNECT_BASE_MS = 1500;
 
 // ─── ICE / STUN + TURN ───────────────────────────────────────────────────────
 // STUN: free Google servers — used first, works for most direct connections
@@ -22,28 +22,28 @@ export const RECONNECT_BASE_MS   = 1500;
 //       only when both peers are behind strict NAT (e.g. mobile data networks)
 export const ICE_SERVERS = [
   // ── STUN ──────────────────────────────────────────────────────────────────
-  { urls: "stun:stun.l.google.com:19302"  },
+  { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun2.l.google.com:19302" },
-  { urls: "stun:openrelay.metered.ca:80"  },
+  { urls: "stun:openrelay.metered.ca:80" },
 
   // ── TURN (fallback relay) ──────────────────────────────────────────────────
   // Port 80 UDP/TCP — works through most firewalls
   {
-    urls:       "turn:openrelay.metered.ca:80",
-    username:   "openrelayproject",
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
     credential: "openrelayproject",
   },
   // Port 443 UDP/TCP — works through strict firewalls that block port 80
   {
-    urls:       "turn:openrelay.metered.ca:443",
-    username:   "openrelayproject",
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
     credential: "openrelayproject",
   },
   // TURNS — TURN over TLS on port 443, most reliable through corporate firewalls
   {
-    urls:       "turns:openrelay.metered.ca:443",
-    username:   "openrelayproject",
+    urls: "turns:openrelay.metered.ca:443",
+    username: "openrelayproject",
     credential: "openrelayproject",
   },
 ];

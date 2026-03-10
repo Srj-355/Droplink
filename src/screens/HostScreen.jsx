@@ -32,7 +32,7 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
   const copy = (text, set) =>
     navigator.clipboard.writeText(text)
       .then(() => { set(true); setTimeout(() => set(false), 2000); })
-      .catch(() => {});
+      .catch(() => { });
 
   return (
     <div className="setup">

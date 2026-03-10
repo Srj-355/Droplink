@@ -1,28 +1,28 @@
 import { formatBytes, formatSpeed, formatETA } from "../constants";
 
 export default function TransferItem({ transfer: t, onPause, onResume, onCancel }) {
-  const isOut   = t.direction === "out";
-  const isDone  = t.status === "done";
-  const isErr   = t.status === "error";
+  const isOut = t.direction === "out";
+  const isDone = t.status === "done";
+  const isErr = t.status === "error";
   const isPaused = t.status === "paused";
   const isCancelled = t.status === "cancelled";
   const isReconnecting = t.status === "reconnecting";
 
   const barClass =
-    isDone        ? "bar-done" :
-    isErr         ? "bar-error" :
-    isPaused      ? "bar-paused" :
-    isCancelled   ? "bar-cancelled" :
-    isReconnecting? "bar-reconnecting" :
-    isOut         ? "bar-shimmer" : "bar-receive";
+    isDone ? "bar-done" :
+      isErr ? "bar-error" :
+        isPaused ? "bar-paused" :
+          isCancelled ? "bar-cancelled" :
+            isReconnecting ? "bar-reconnecting" :
+              isOut ? "bar-shimmer" : "bar-receive";
 
   const statusLabel =
-    isDone        ? <span style={{ ...s.badge, ...s.badgeDone }}>✓ Done</span> :
-    isErr         ? <span style={{ ...s.badge, ...s.badgeErr }}>✗ Failed</span> :
-    isPaused      ? <span style={{ ...s.badge, ...s.badgePaused }}>⏸ Paused</span> :
-    isCancelled   ? <span style={{ ...s.badge, ...s.badgeCancelled }}>🚫 Cancelled</span> :
-    isReconnecting? <span style={{ ...s.badge, ...s.badgeRetry }}>🔄 Reconnecting…</span> :
-    <span style={s.pct}>{t.progress}%</span>;
+    isDone ? <span style={{ ...s.badge, ...s.badgeDone }}>✓ Done</span> :
+      isErr ? <span style={{ ...s.badge, ...s.badgeErr }}>✗ Failed</span> :
+        isPaused ? <span style={{ ...s.badge, ...s.badgePaused }}>⏸ Paused</span> :
+          isCancelled ? <span style={{ ...s.badge, ...s.badgeCancelled }}>🚫 Cancelled</span> :
+            isReconnecting ? <span style={{ ...s.badge, ...s.badgeRetry }}>🔄 Reconnecting…</span> :
+              <span style={s.pct}>{t.progress}%</span>;
 
   const canAct = !isDone && !isErr && !isCancelled && isOut;
 
@@ -48,7 +48,7 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel 
           {statusLabel}
           {t.chunkSize && !isDone && !isErr && !isCancelled && (
             <span style={s.chunkLbl}>
-              {t.chunkSize >= 1024*1024 ? `${t.chunkSize/(1024*1024)}MB` : `${t.chunkSize/1024}KB`} chunks
+              {t.chunkSize >= 1024 * 1024 ? `${t.chunkSize / (1024 * 1024)}MB` : `${t.chunkSize / 1024}KB`} chunks
             </span>
           )}
         </div>
@@ -58,7 +58,7 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel 
           {!isDone && !isErr && !isCancelled && !isPaused && !isReconnecting && (
             <>
               {t.speed > 0 && <span style={s.speed}>{formatSpeed(t.speed)}</span>}
-              {t.eta  > 0 && <span style={s.eta}>ETA {formatETA(t.eta)}</span>}
+              {t.eta > 0 && <span style={s.eta}>ETA {formatETA(t.eta)}</span>}
             </>
           )}
 
@@ -88,7 +88,7 @@ const s = {
   top: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.45rem", minWidth: 0, overflow: "hidden" },
   dir: { fontSize: "0.58rem", padding: "0.1rem 0.42rem", borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, fontFamily: "'JetBrains Mono', monospace" },
   dirOut: { background: "rgba(14,165,233,0.12)", color: "#0ea5e9" },
-  dirIn:  { background: "rgba(16,185,129,0.12)", color: "#10b981" },
+  dirIn: { background: "rgba(16,185,129,0.12)", color: "#10b981" },
   name: { fontSize: "0.78rem", color: "#0f172a", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   size: { fontSize: "0.66rem", color: "#94a3b8", flexShrink: 0 },
   barBg: { height: 3, background: "rgba(100,116,139,0.1)", borderRadius: 2, overflow: "hidden", marginBottom: "0.4rem" },
@@ -99,14 +99,14 @@ const s = {
   pct: { fontSize: "0.64rem", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" },
   chunkLbl: { fontSize: "0.58rem", color: "#94a3b8", fontStyle: "italic" },
   speed: { fontSize: "0.62rem", color: "#0ea5e9", fontFamily: "'JetBrains Mono', monospace" },
-  eta:   { fontSize: "0.62rem", color: "#94a3b8" },
+  eta: { fontSize: "0.62rem", color: "#94a3b8" },
   badge: { fontSize: "0.62rem", padding: "0.1rem 0.42rem", borderRadius: 4, fontWeight: 600 },
-  badgeDone:      { background: "rgba(16,185,129,0.12)", color: "#059669" },
-  badgeErr:       { background: "rgba(244,63,94,0.1)",  color: "#e11d48" },
-  badgePaused:    { background: "rgba(245,158,11,0.12)", color: "#d97706" },
+  badgeDone: { background: "rgba(16,185,129,0.12)", color: "#059669" },
+  badgeErr: { background: "rgba(244,63,94,0.1)", color: "#e11d48" },
+  badgePaused: { background: "rgba(245,158,11,0.12)", color: "#d97706" },
   badgeCancelled: { background: "rgba(100,116,139,0.1)", color: "#64748b" },
-  badgeRetry:     { background: "rgba(14,165,233,0.1)",  color: "#0ea5e9" },
+  badgeRetry: { background: "rgba(14,165,233,0.1)", color: "#0ea5e9" },
   actions: { display: "flex", gap: "0.25rem" },
   btnGreen: { color: "#059669" },
-  btnRed:   { color: "#e11d48" },
+  btnRed: { color: "#e11d48" },
 };

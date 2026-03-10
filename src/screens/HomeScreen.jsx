@@ -70,10 +70,10 @@ function ActionCard({ icon, label, desc, accent, onClick }) {
 }
 
 const FEATURES = [
-  "🔒 E2E Encrypted","📁 Any File Type","💬 Live Chat",
-  "📱 QR Pairing","⚡ WebRTC P2P","🚫 No Limits",
-  "📊 Adaptive Chunks","♻️ Auto-Resume","📜 History",
-  "⏸ Pause & Cancel","📦 File Queue",
+  "🔒 E2E Encrypted", "📁 Any File Type", "💬 Live Chat",
+  "📱 QR Pairing", "⚡ WebRTC P2P", "🚫 No Limits",
+  "📊 Adaptive Chunks", "♻️ Auto-Resume", "📜 History",
+  "⏸ Pause & Cancel", "📦 File Queue",
 ];
 
 const s = {
@@ -119,7 +119,7 @@ const s = {
     fontSize: "1.3rem", marginBottom: "0.2rem",
   },
   cardLabel: { fontSize: "1rem", fontWeight: 700, color: "#0f172a" },
-  cardDesc:  { fontSize: "0.72rem", color: "#64748b", lineHeight: 1.6 },
+  cardDesc: { fontSize: "0.72rem", color: "#64748b", lineHeight: 1.6 },
   cardArrow: { fontSize: "1.1rem", fontWeight: 700, marginTop: "0.3rem" },
   pills: { display: "flex", flexWrap: "wrap", gap: "0.35rem", justifyContent: "center" },
   pill: {

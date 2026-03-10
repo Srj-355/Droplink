@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 
-const DB_NAME     = "droplink-v1";
-const STORE_NAME  = "transfers";
-const DB_VERSION  = 2;          // bumped to 2 so onupgradeneeded adds the new "room" index
+const DB_NAME = "droplink-v1";
+const STORE_NAME = "transfers";
+const DB_VERSION = 2;          // bumped to 2 so onupgradeneeded adds the new "room" index
 const MAX_RECORDS = 200;
 
 function openDB() {
@@ -14,7 +14,7 @@ function openDB() {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
         store.createIndex("timestamp", "timestamp", { unique: false });
-        store.createIndex("room",      "room",      { unique: false });
+        store.createIndex("room", "room", { unique: false });
       } else {
         // Store already exists — just add the "room" index if missing
         const store = e.target.transaction.objectStore(STORE_NAME);
@@ -24,7 +24,7 @@ function openDB() {
       }
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror   = () => reject(req.error);
+    req.onerror = () => reject(req.error);
   });
 }
 
@@ -34,17 +34,17 @@ async function idbAdd(record) {
     const tx = db.transaction(STORE_NAME, "readwrite");
     tx.objectStore(STORE_NAME).put(record);
     tx.oncomplete = () => resolve();
-    tx.onerror    = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error);
   });
 }
 
 async function idbGetAll() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx      = db.transaction(STORE_NAME, "readonly");
-    const store   = tx.objectStore(STORE_NAME);
-    const idx     = store.index("timestamp");
-    const req     = idx.openCursor(null, "prev"); // newest first
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const idx = store.index("timestamp");
+    const req = idx.openCursor(null, "prev"); // newest first
     const results = [];
     req.onsuccess = (e) => {
       const cursor = e.target.result;
@@ -65,23 +65,23 @@ async function idbClear() {
     const tx = db.transaction(STORE_NAME, "readwrite");
     tx.objectStore(STORE_NAME).clear();
     tx.oncomplete = () => resolve();
-    tx.onerror    = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error);
   });
 }
 
 async function idbClearByRoom(room) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx    = db.transaction(STORE_NAME, "readwrite");
+    const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const idx   = store.index("room");
-    const req   = idx.openCursor(IDBKeyRange.only(room));
+    const idx = store.index("room");
+    const req = idx.openCursor(IDBKeyRange.only(room));
     req.onsuccess = (e) => {
       const cursor = e.target.result;
       if (cursor) { cursor.delete(); cursor.continue(); }
     };
     tx.oncomplete = () => resolve();
-    tx.onerror    = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -91,14 +91,14 @@ async function idbDelete(id) {
     const tx = db.transaction(STORE_NAME, "readwrite");
     tx.objectStore(STORE_NAME).delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror    = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error);
   });
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useHistory() {
-  const [history,  setHistory]  = useState([]);   // all records
-  const [loading,  setLoading]  = useState(true);
+  const [history, setHistory] = useState([]);   // all records
+  const [loading, setLoading] = useState(true);
 
   // Load all records on mount
   useEffect(() => {
@@ -110,16 +110,16 @@ export function useHistory() {
   // Add a completed transfer — caller must pass roomCode
   const addRecord = useCallback(async (transfer) => {
     const record = {
-      id:        transfer.id,
-      name:      transfer.name,
-      size:      transfer.size,
+      id: transfer.id,
+      name: transfer.name,
+      size: transfer.size,
       direction: transfer.direction,
-      status:    transfer.status,
+      status: transfer.status,
       timestamp: Date.now(),
-      duration:  transfer.duration  ?? null,
-      avgSpeed:  transfer.avgSpeed  ?? null,
-      peer:      transfer.peer      ?? null,
-      room:      transfer.roomCode  ?? "unknown",  // ← new field
+      duration: transfer.duration ?? null,
+      avgSpeed: transfer.avgSpeed ?? null,
+      peer: transfer.peer ?? null,
+      room: transfer.roomCode ?? "unknown",  // ← new field
     };
     try {
       await idbAdd(record);

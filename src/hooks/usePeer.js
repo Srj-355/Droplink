@@ -7,13 +7,13 @@ import {
 } from "../constants";
 import Peer from "peerjs";
 // ─── Feature flags ────────────────────────────────────────────────────────────
-const STREAM_SUPPORTED  = typeof window !== "undefined" && "showSaveFilePicker" in window;
-const STREAM_MIN_BYTES  = 1   * 1024 * 1024;
+const STREAM_SUPPORTED = typeof window !== "undefined" && "showSaveFilePicker" in window;
+const STREAM_MIN_BYTES = 1 * 1024 * 1024;
 const BUFFER_WARN_BYTES = 200 * 1024 * 1024;
 
 // ─── Flow-control ─────────────────────────────────────────────────────────────
-const HIGH_WATERMARK = 1   * 1024 * 1024;  // 1 MB  — pause above this
-const LOW_WATERMARK  = 256 * 1024;          // 256 KB — resume below this
+const HIGH_WATERMARK = 1 * 1024 * 1024;  // 1 MB  — pause above this
+const LOW_WATERMARK = 256 * 1024;          // 256 KB — resume below this
 const SCTP_WARMUP_MS = 50;
 
 // ─── Framing protocol ─────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ const SCTP_WARMUP_MS = 50;
 //   0x01 → JSON control  : [0x01][UTF-8 JSON]
 //   0x02 → Binary chunk  : [0x02][u16 idLen][fileId][u32 index][data]
 
-const TYPE_JSON  = 0x01;
+const TYPE_JSON = 0x01;
 const TYPE_CHUNK = 0x02;
 
 function encodeJSON(obj) {
@@ -35,11 +35,11 @@ function encodeJSON(obj) {
 }
 
 function encodeChunk(fileId, index, chunkBuffer) {
-  const id  = new TextEncoder().encode(fileId);
+  const id = new TextEncoder().encode(fileId);
   const hdr = 1 + 2 + id.byteLength + 4;
   const buf = new ArrayBuffer(hdr + chunkBuffer.byteLength);
-  const dv  = new DataView(buf);
-  const u8  = new Uint8Array(buf);
+  const dv = new DataView(buf);
+  const u8 = new Uint8Array(buf);
   dv.setUint8(0, TYPE_CHUNK);
   dv.setUint16(1, id.byteLength, false);
   u8.set(id, 3);
@@ -49,20 +49,20 @@ function encodeChunk(fileId, index, chunkBuffer) {
 }
 
 function decodeFrame(raw) {
-  const buf  = raw instanceof ArrayBuffer ? raw : raw.buffer;
-  const dv   = new DataView(buf);
-  const u8   = new Uint8Array(buf);
+  const buf = raw instanceof ArrayBuffer ? raw : raw.buffer;
+  const dv = new DataView(buf);
+  const u8 = new Uint8Array(buf);
   const kind = dv.getUint8(0);
   if (kind === TYPE_JSON) {
     try { return { type: "json", data: JSON.parse(new TextDecoder().decode(u8.subarray(1))) }; }
     catch { return null; }
   }
   if (kind === TYPE_CHUNK) {
-    const idLen  = dv.getUint16(1, false);
-    const idEnd  = 3 + idLen;
+    const idLen = dv.getUint16(1, false);
+    const idEnd = 3 + idLen;
     const fileId = new TextDecoder().decode(u8.subarray(3, idEnd));
-    const index  = dv.getUint32(idEnd, false);
-    const chunk  = buf.slice(idEnd + 4);
+    const index = dv.getUint32(idEnd, false);
+    const chunk = buf.slice(idEnd + 4);
     return { type: "chunk", fileId, index, chunk };
   }
   return null;
@@ -70,33 +70,33 @@ function decodeFrame(raw) {
 
 // ─── usePeer ──────────────────────────────────────────────────────────────────
 export function usePeer({ onTransferComplete } = {}) {
-  const [screen,       setScreen]      = useState("home");
-  const [roomCode,     setRoomCode]    = useState("");
-  const [joinCode,     setJoinCode]    = useState("");
-  const [peer,         setPeer]        = useState(null);
-  const [connected,    setConnected]   = useState(false);
-  const [messages,     setMessages]    = useState([]);
-  const [transfers,    setTransfers]   = useState([]);
-  const [fileQueue,    setFileQueue]   = useState([]);   // { id, file, status }
-  const [shareUrl,     setShareUrl]    = useState("");
-  const [peerError,    setPeerError]   = useState("");
-  const [libsReady,    setLibsReady]   = useState(false);
+  const [screen, setScreen] = useState("home");
+  const [roomCode, setRoomCode] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [peer, setPeer] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [transfers, setTransfers] = useState([]);
+  const [fileQueue, setFileQueue] = useState([]);   // { id, file, status }
+  const [shareUrl, setShareUrl] = useState("");
+  const [peerError, setPeerError] = useState("");
+  const [libsReady, setLibsReady] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
-  const connRef          = useRef(null);
-  const dcRef            = useRef(null);
-  const connectedRef     = useRef(false);
-  const peerRef          = useRef(null);      // mirrors peer state for callbacks
-  const sendStates       = useRef({});
-  const speedTrackers    = useRef({});
-  const receiveBuffers   = useRef({});
-  const activeFileId     = useRef(null);      // currently sending fileId
-  const fileQueueRef     = useRef([]);        // mirror of fileQueue for callbacks
-  const reconnectCount   = useRef(0);
+  const connRef = useRef(null);
+  const dcRef = useRef(null);
+  const connectedRef = useRef(false);
+  const peerRef = useRef(null);      // mirrors peer state for callbacks
+  const sendStates = useRef({});
+  const speedTrackers = useRef({});
+  const receiveBuffers = useRef({});
+  const activeFileId = useRef(null);      // currently sending fileId
+  const fileQueueRef = useRef([]);        // mirror of fileQueue for callbacks
+  const reconnectCount = useRef(0);
   const intentionalLeave = useRef(false);     // user pressed Leave
-  const targetRoomCode   = useRef("");        // room to reconnect to
-  const isHost           = useRef(false);
+  const targetRoomCode = useRef("");        // room to reconnect to
+  const isHost = useRef(false);
 
   useEffect(() => { connectedRef.current = connected; }, [connected]);
   useEffect(() => { fileQueueRef.current = fileQueue; }, [fileQueue]);
@@ -104,8 +104,8 @@ export function usePeer({ onTransferComplete } = {}) {
 
   // ── Load CDN ───────────────────────────────────────────────────────────────
   useEffect(() => {
-  setLibsReady(true);
-}, []);
+    setLibsReady(true);
+  }, []);
 
   // ── URL room param ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -116,11 +116,11 @@ export function usePeer({ onTransferComplete } = {}) {
   // ── Helpers ────────────────────────────────────────────────────────────────
   const addMessage = useCallback((msg) =>
     setMessages((prev) => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }])
-  , []);
+    , []);
 
   const updateTransfer = useCallback((fileId, patch) =>
     setTransfers((prev) => prev.map((t) => t.id === fileId ? { ...t, ...patch } : t))
-  , []);
+    , []);
 
   // ── Speed tracker ──────────────────────────────────────────────────────────
   const tickSpeed = useCallback((fileId, bytesDone, total) => {
@@ -131,7 +131,7 @@ export function usePeer({ onTransferComplete } = {}) {
     if (now - tr.lastUpdate < SPEED_UPDATE_MS && tr.speed !== undefined)
       return { speed: tr.speed, eta: tr.eta };
     const speed = bytesDone / elapsed;
-    const eta   = speed > 0 ? (total - bytesDone) / speed : null;
+    const eta = speed > 0 ? (total - bytesDone) / speed : null;
     speedTrackers.current[fileId] = { ...tr, lastUpdate: now, speed, eta };
     return { speed, eta };
   }, []);
@@ -158,7 +158,7 @@ export function usePeer({ onTransferComplete } = {}) {
   }, [addMessage, updateTransfer]);
 
   const activateFallback = useCallback((fileId, buf) => {
-    buf.mode   = "buffer";
+    buf.mode = "buffer";
     buf.chunks = new Array(buf.meta.totalChunks);
     buf.pendingChunks.forEach((c, i) => { buf.chunks[i] = c; });
     buf.pendingChunks.clear();
@@ -168,12 +168,12 @@ export function usePeer({ onTransferComplete } = {}) {
   const finishBuffer = useCallback((fileId, buf) => {
     const parts = buf.chunks.map((c) => {
       if (c instanceof ArrayBuffer) return new Uint8Array(c);
-      if (ArrayBuffer.isView(c))    return new Uint8Array(c.buffer, c.byteOffset, c.byteLength);
+      if (ArrayBuffer.isView(c)) return new Uint8Array(c.buffer, c.byteOffset, c.byteLength);
       return new Uint8Array(c);
     });
     const blob = new Blob(parts);
-    const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement("a"), { href: url, download: buf.meta.name });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), { href: url, download: buf.meta.name });
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     const tracker = speedTrackers.current[fileId];
@@ -183,8 +183,10 @@ export function usePeer({ onTransferComplete } = {}) {
     delete speedTrackers.current[fileId];
     updateTransfer(fileId, { progress: 100, status: "done", speed: 0, eta: null });
     addMessage({ type: "system", text: `✅ Received "${buf.meta.name}" (${formatBytes(buf.meta.size)})` });
-    onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size,
-      direction: "in", status: "done", duration, avgSpeed });
+    onTransferComplete?.({
+      id: fileId, name: buf.meta.name, size: buf.meta.size,
+      direction: "in", status: "done", duration, avgSpeed
+    });
   }, [addMessage, updateTransfer, onTransferComplete]);
 
   // ── Sender finalize ────────────────────────────────────────────────────────
@@ -198,8 +200,10 @@ export function usePeer({ onTransferComplete } = {}) {
     delete sendStates.current[fileId];
     delete speedTrackers.current[fileId];
     // Notify history
-    onTransferComplete?.({ id: fileId, name: state.fileName, size: state.fileSize,
-      direction: "out", status: "done", duration, avgSpeed });
+    onTransferComplete?.({
+      id: fileId, name: state.fileName, size: state.fileSize,
+      direction: "out", status: "done", duration, avgSpeed
+    });
     // Advance queue
     activeFileId.current = null;
     _advanceQueue();
@@ -210,7 +214,7 @@ export function usePeer({ onTransferComplete } = {}) {
     if (activeFileId.current) return; // already sending
     if (!connectedRef.current) return;
     const queue = fileQueueRef.current;
-    const next  = queue.find((q) => q.status === "queued");
+    const next = queue.find((q) => q.status === "queued");
     if (!next) return;
     setFileQueue((prev) => prev.map((q) => q.id === next.id ? { ...q, status: "sending" } : q));
     activeFileId.current = next.id;
@@ -245,9 +249,11 @@ export function usePeer({ onTransferComplete } = {}) {
             .then((fh) => fh.createWritable())
             .catch((err) => { console.warn("Save dialog cancelled:", err.message); return null; });
 
-          const buf = { mode: "stream", writablePromise, writable: null, ready: false,
+          const buf = {
+            mode: "stream", writablePromise, writable: null, ready: false,
             flushing: false, pendingChunks: new Map(), nextExpected: 0, received: 0,
-            chunks: null, meta: { name, size, totalChunks, chunkSize } };
+            chunks: null, meta: { name, size, totalChunks, chunkSize }
+          };
           receiveBuffers.current[fileId] = buf;
           writablePromise.then((w) => {
             const b = receiveBuffers.current[fileId]; if (!b) return;
@@ -280,7 +286,7 @@ export function usePeer({ onTransferComplete } = {}) {
         const p = Math.min(99, Math.round((state.ackedChunks / state.totalChunks) * 100));
         updateTransfer(fileId, { progress: p });
         if (state.allDispatched && state.ackedChunks >= state.totalChunks) {
-          const lbl = state.chunkSize >= 1024*1024 ? `${state.chunkSize/(1024*1024)}MB` : `${state.chunkSize/1024}KB`;
+          const lbl = state.chunkSize >= 1024 * 1024 ? `${state.chunkSize / (1024 * 1024)}MB` : `${state.chunkSize / 1024}KB`;
           updateTransfer(fileId, { progress: 100, status: "done", speed: 0, eta: null });
           addMessage({ type: "system", text: `📤 Sent "${state.fileName}" (${formatBytes(state.fileSize)}) — ${lbl} chunks` });
           _finalizeSender(fileId, state);
@@ -324,7 +330,7 @@ export function usePeer({ onTransferComplete } = {}) {
       if (buf.mode === "stream") {
         if (!buf.pendingChunks.has(index)) { buf.pendingChunks.set(index, chunk); buf.received++; }
         const bd = Math.min(buf.received * buf.meta.chunkSize, buf.meta.size);
-        const p  = Math.min(100, Math.round((buf.received / buf.meta.totalChunks) * 100));
+        const p = Math.min(100, Math.round((buf.received / buf.meta.totalChunks) * 100));
         const { speed, eta } = tickSpeed(fileId, bd, buf.meta.size);
         updateTransfer(fileId, { progress: p, speed, eta, received: buf.received });
         if (buf.ready && buf.writable) flushPending(fileId);
@@ -338,12 +344,14 @@ export function usePeer({ onTransferComplete } = {}) {
             }
             await flushPending(fileId);
             const b3 = receiveBuffers.current[fileId]; if (!b3 || !b3.writable) return;
-            try { await b3.writable.close(); } catch {}
+            try { await b3.writable.close(); } catch { }
             delete receiveBuffers.current[fileId]; delete speedTrackers.current[fileId];
             updateTransfer(fileId, { progress: 100, status: "done", speed: 0, eta: null });
             addMessage({ type: "system", text: `✅ Saved "${buf.meta.name}" (${formatBytes(buf.meta.size)}) to disk 💾` });
-            onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size,
-              direction: "in", status: "done" });
+            onTransferComplete?.({
+              id: fileId, name: buf.meta.name, size: buf.meta.size,
+              direction: "in", status: "done"
+            });
           })();
         }
         return;
@@ -352,7 +360,7 @@ export function usePeer({ onTransferComplete } = {}) {
       if (buf.mode === "buffer") {
         if (!buf.chunks[index]) { buf.chunks[index] = chunk; buf.received++; }
         const bd = Math.min(buf.received * buf.meta.chunkSize, buf.meta.size);
-        const p  = Math.min(100, Math.round((buf.received / buf.meta.totalChunks) * 100));
+        const p = Math.min(100, Math.round((buf.received / buf.meta.totalChunks) * 100));
         const { speed, eta } = tickSpeed(fileId, bd, buf.meta.size);
         updateTransfer(fileId, { progress: p, speed, eta, received: buf.received });
         if (buf.received === buf.meta.totalChunks) finishBuffer(fileId, buf);
@@ -417,7 +425,7 @@ export function usePeer({ onTransferComplete } = {}) {
           if (s.resumeSend) s.resumeSend(); if (s.resumePause) s.resumePause();
         });
         Object.values(receiveBuffers.current).forEach(async (buf) => {
-          if (buf.mode === "stream" && buf.writable) try { await buf.writable.abort(); } catch {}
+          if (buf.mode === "stream" && buf.writable) try { await buf.writable.abort(); } catch { }
         });
         sendStates.current = {}; speedTrackers.current = {}; receiveBuffers.current = {};
         setTransfers((prev) => prev.map((t) =>
@@ -447,7 +455,7 @@ export function usePeer({ onTransferComplete } = {}) {
     reconnectCount.current = attempt;
     setReconnecting(true);
     const delay = RECONNECT_BASE_MS * Math.pow(2, attempt - 1);
-    addMessage({ type: "system", text: `🔄 Reconnecting… attempt ${attempt}/${RECONNECT_MAX} (${delay/1000}s)` });
+    addMessage({ type: "system", text: `🔄 Reconnecting… attempt ${attempt}/${RECONNECT_MAX} (${delay / 1000}s)` });
 
     setTimeout(() => {
       if (intentionalLeave.current) return;
@@ -469,15 +477,15 @@ export function usePeer({ onTransferComplete } = {}) {
 
   // ── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(() => {
-if (!libsReady) { setPeerError("Libraries still loading."); return; }
+    if (!libsReady) { setPeerError("Libraries still loading."); return; }
     setPeerError(""); intentionalLeave.current = false; isHost.current = true;
 
     const attemptCreate = (retries = 3) => {
       const code = generateRoomCode();
       const p = new Peer(code, {
-  debug: 0,
-  config: { iceServers: ICE_SERVERS },
-});
+        debug: 0,
+        config: { iceServers: ICE_SERVERS },
+      });
 
 
       p.on("open", (id) => {
@@ -498,15 +506,15 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
   const joinRoom = useCallback(() => {
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
-if (!libsReady) { setPeerError("Libraries still loading."); return; }
+    if (!libsReady) { setPeerError("Libraries still loading."); return; }
     setPeerError(""); setScreen("room");
     intentionalLeave.current = false; isHost.current = false;
     targetRoomCode.current = code;
 
     const p = new Peer(undefined, {
-  debug: 0,
-  config: { iceServers: ICE_SERVERS },
-});
+      debug: 0,
+      config: { iceServers: ICE_SERVERS },
+    });
     p.on("open", () => {
       const conn = p.connect(code, { reliable: true, serialization: "raw" });
       setupConn.current(conn); setPeer(p);
@@ -541,7 +549,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
     const c = connRef.current;
     if (!c || !connectedRef.current) return;
 
-    const chunkSize   = getChunkSize(file.size);
+    const chunkSize = getChunkSize(file.size);
     const totalChunks = Math.ceil(file.size / chunkSize);
 
     sendStates.current[fileId] = {
@@ -607,7 +615,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
 
       const chunkBuffer = await new Promise((res, rej) => {
         const reader = new FileReader();
-        reader.onload  = (e) => res(e.target.result);
+        reader.onload = (e) => res(e.target.result);
         reader.onerror = () => rej(new Error("FileReader error"));
         reader.readAsArrayBuffer(file.slice(index * chunkSize, Math.min((index + 1) * chunkSize, file.size)));
       });
@@ -625,7 +633,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
       if (!st2 || st2.aborted) return;
 
       // SCTP size guard
-      const frame    = encodeChunk(fileId, index, chunkBuffer);
+      const frame = encodeChunk(fileId, index, chunkBuffer);
       const maxBytes = dcRef.current?.maxMessageSize ?? Infinity;
       if (frame.byteLength > maxBytes) {
         st2.aborted = true;
@@ -683,7 +691,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
         await sendChunk(index);
 
         const bd = Math.min(chunkIndex * chunkSize, file.size);
-        const p  = Math.min(99, Math.round((chunkIndex / totalChunks) * 100));
+        const p = Math.min(99, Math.round((chunkIndex / totalChunks) * 100));
         const { speed, eta } = tickSpeed(fileId, bd, file.size);
         updateTransfer(fileId, { progress: p, speed, eta, sent: chunkIndex });
       }
@@ -692,7 +700,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
       if (st && !st.aborted) {
         st.allDispatched = true;
         if (st.ackedChunks >= totalChunks) {
-          const lbl = chunkSize >= 1024*1024 ? `${chunkSize/(1024*1024)}MB` : `${chunkSize/1024}KB`;
+          const lbl = chunkSize >= 1024 * 1024 ? `${chunkSize / (1024 * 1024)}MB` : `${chunkSize / 1024}KB`;
           updateTransfer(fileId, { progress: 100, status: "done", speed: 0, eta: null });
           addMessage({ type: "system", text: `📤 Sent "${file.name}" (${formatBytes(file.size)}) — ${lbl} chunks` });
           _finalizeSender(fileId, st);
@@ -726,7 +734,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
     if (state) {
       state.aborted = true;
       Object.values(state.ackTimers).forEach(clearTimeout);
-      if (state.resumeSend)  state.resumeSend();
+      if (state.resumeSend) state.resumeSend();
       if (state.resumePause) state.resumePause();
     }
     updateTransfer(fileId, { status: "cancelled" });
@@ -740,7 +748,7 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
   // ── Cancel transfer (receiver side) ───────────────────────────────────────
   const cancelReceive = useCallback((fileId) => {
     const buf = receiveBuffers.current[fileId];
-    if (buf?.mode === "stream" && buf.writable) buf.writable.abort().catch(() => {});
+    if (buf?.mode === "stream" && buf.writable) buf.writable.abort().catch(() => { });
     delete receiveBuffers.current[fileId];
     delete speedTrackers.current[fileId];
     updateTransfer(fileId, { status: "cancelled" });
@@ -768,18 +776,18 @@ if (!libsReady) { setPeerError("Libraries still loading."); return; }
   const leaveRoom = useCallback(() => {
     intentionalLeave.current = true;
     Object.values(receiveBuffers.current).forEach(async (buf) => {
-      if (buf.mode === "stream" && buf.writable) try { await buf.writable.abort(); } catch {}
+      if (buf.mode === "stream" && buf.writable) try { await buf.writable.abort(); } catch { }
     });
     Object.values(sendStates.current).forEach((s) => {
       s.aborted = true;
       Object.values(s.ackTimers || {}).forEach(clearTimeout);
-      if (s.resumeSend)  s.resumeSend();
+      if (s.resumeSend) s.resumeSend();
       if (s.resumePause) s.resumePause();
     });
     sendStates.current = {}; speedTrackers.current = {}; receiveBuffers.current = {};
     connRef.current = null; dcRef.current = null; connectedRef.current = false;
     activeFileId.current = null; reconnectCount.current = 0;
-    try { peerRef.current?.destroy(); } catch {}
+    try { peerRef.current?.destroy(); } catch { }
     setPeer(null); setConnected(false); setMessages([]); setTransfers([]);
     setFileQueue([]); setRoomCode(""); setShareUrl(""); setPeerError("");
     setJoinCode(""); setScreen("home"); setReconnecting(false);

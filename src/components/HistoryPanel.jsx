@@ -96,10 +96,10 @@ export default function HistoryPanel({
 }
 
 function HistoryRow({ record: r, onRemove, showRoom }) {
-  const isOut  = r.direction === "out";
+  const isOut = r.direction === "out";
   const isDone = r.status === "done";
-  const date   = new Date(r.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  const time   = new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const date = new Date(r.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const time = new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
     <div style={s.row} className="glass-sm">
@@ -125,14 +125,14 @@ function HistoryRow({ record: r, onRemove, showRoom }) {
 }
 
 const s = {
-  wrap:        { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: "0.4rem" },
-  head:        { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.1rem", flexShrink: 0 },
-  headTitle:   { fontSize: "0.75rem", fontWeight: 600, color: "#334155" },
-  headR:       { display: "flex", alignItems: "center", gap: "0.4rem" },
+  wrap: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: "0.4rem" },
+  head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.1rem", flexShrink: 0 },
+  headTitle: { fontSize: "0.75rem", fontWeight: 600, color: "#334155" },
+  headR: { display: "flex", alignItems: "center", gap: "0.4rem" },
 
   // Filter pills
-  filterRow:   { display: "flex", gap: "0.3rem", flexWrap: "wrap", flexShrink: 0 },
-  filterBtn:   {
+  filterRow: { display: "flex", gap: "0.3rem", flexWrap: "wrap", flexShrink: 0 },
+  filterBtn: {
     background: "rgba(255,255,255,0.45)",
     borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(255,255,255,0.65)",
     borderRadius: 20, padding: "0.18rem 0.55rem",
@@ -150,24 +150,24 @@ const s = {
     padding: "0.02rem 0.35rem", fontSize: "0.58rem", color: "#94a3b8",
   },
 
-  list:        { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.4rem" },
-  row:         { borderRadius: 10, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0 },
-  rowTop:      { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.28rem" },
-  dir:         { fontSize: "0.58rem", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
-  dirOut:      { color: "#0ea5e9" },
-  dirIn:       { color: "#10b981" },
-  rName:       { fontSize: "0.74rem", color: "#0f172a", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  roomTag:     {
+  list: { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.4rem" },
+  row: { borderRadius: 10, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0 },
+  rowTop: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.28rem" },
+  dir: { fontSize: "0.58rem", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
+  dirOut: { color: "#0ea5e9" },
+  dirIn: { color: "#10b981" },
+  rName: { fontSize: "0.74rem", color: "#0f172a", fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  roomTag: {
     fontSize: "0.56rem", fontFamily: "'JetBrains Mono', monospace",
     background: "rgba(139,92,246,0.1)", color: "#8b5cf6",
     border: "1px solid rgba(139,92,246,0.2)",
     borderRadius: 4, padding: "0.08rem 0.35rem", flexShrink: 0,
   },
-  status:      { fontSize: "0.68rem", fontWeight: 700, flexShrink: 0 },
-  stDone:      { color: "#059669" },
-  stErr:       { color: "#e11d48" },
-  removeBtn:   { background: "none", border: "none", color: "#cbd5e1", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
-  rowFoot:     { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
-  meta:        { fontSize: "0.6rem", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
-  metaTime:    { fontSize: "0.6rem", color: "#cbd5e1", marginLeft: "auto" },
+  status: { fontSize: "0.68rem", fontWeight: 700, flexShrink: 0 },
+  stDone: { color: "#059669" },
+  stErr: { color: "#e11d48" },
+  removeBtn: { background: "none", border: "none", color: "#cbd5e1", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
+  rowFoot: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
+  meta: { fontSize: "0.6rem", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
+  metaTime: { fontSize: "0.6rem", color: "#cbd5e1", marginLeft: "auto" },
 };

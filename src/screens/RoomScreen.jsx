@@ -1,9 +1,9 @@
 import { useState } from "react";
-import DropZone      from "../components/DropZone";
-import TransferItem  from "../components/TransferItem";
-import ChatPanel     from "../components/ChatPanel";
-import HistoryPanel  from "../components/HistoryPanel";
-import QueuePanel    from "../components/QueuePanel";
+import DropZone from "../components/DropZone";
+import TransferItem from "../components/TransferItem";
+import ChatPanel from "../components/ChatPanel";
+import HistoryPanel from "../components/HistoryPanel";
+import QueuePanel from "../components/QueuePanel";
 
 export default function RoomScreen({
   roomCode, connected, reconnecting,
@@ -15,7 +15,7 @@ export default function RoomScreen({
   onRemoveFromQueue,
   onClearHistory, onClearRoomHistory, onRemoveHistory,
 }) {
-  const [tab,       setTab]       = useState("transfers");
+  const [tab, setTab] = useState("transfers");
   const [mobileTab, setMobileTab] = useState("files");
 
   const handleCancel = (id, direction) => {
@@ -158,8 +158,8 @@ export default function RoomScreen({
 }
 
 const s = {
-  leftPanel:  { display: "flex", flexDirection: "column", gap: "0.75rem", overflow: "hidden", minHeight: 0, height: "100%" },
-  tabRow:     { display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 },
+  leftPanel: { display: "flex", flexDirection: "column", gap: "0.75rem", overflow: "hidden", minHeight: 0, height: "100%" },
+  tabRow: { display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 },
   tabContent: { flex: 1, overflow: "hidden", minHeight: 0, display: "flex", flexDirection: "column" },
-  list:       { display: "flex", flexDirection: "column", gap: "0.45rem", overflowY: "auto", flex: 1 },
+  list: { display: "flex", flexDirection: "column", gap: "0.45rem", overflowY: "auto", flex: 1 },
 };

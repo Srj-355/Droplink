@@ -15,8 +15,8 @@ export default function DropZone({ connected, onFiles }) {
       className="glass"
       style={{
         ...s.zone,
-        ...(dragging   ? s.zoneDrag : {}),
-        ...(connected  ? {}         : s.zoneOff),
+        ...(dragging ? s.zoneDrag : {}),
+        ...(connected ? {} : s.zoneOff),
       }}
       onDragOver={(e) => { e.preventDefault(); if (connected) setDragging(true); }}
       onDragLeave={() => setDragging(false)}

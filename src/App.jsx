@@ -1,6 +1,6 @@
 import "./styles/global.css";
 import { useCallback, useRef } from "react";
-import { usePeer }    from "./hooks/usePeer";
+import { usePeer } from "./hooks/usePeer";
 import { useHistory } from "./hooks/Usehistory";
 import HomeScreen from "./screens/HomeScreen";
 import HostScreen from "./screens/HostScreen";
