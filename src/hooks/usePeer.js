@@ -1892,8 +1892,7 @@ export function usePeer({ onTransferComplete } = {}) {
 
       p.on("open", (id) => {
         targetRoomCode.current = id;
-        const ip   = typeof __LOCAL_IP__ !== "undefined" ? __LOCAL_IP__ : window.location.hostname;
-        const url  = `${window.location.protocol}//${ip}:${window.location.port}${window.location.pathname}?room=${id}`;
+        const url = `${window.location.origin}${window.location.pathname}?room=${id}`;
         setRoomCode(id); setShareUrl(url); setPeer(p); setScreen("host");
       });
       p.on("connection", (conn) => { setupConn.current(conn); });

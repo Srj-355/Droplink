@@ -261,8 +261,22 @@ body {
   overflow: hidden; min-height: 0;
 }
 @media(max-width: 720px) {
+  .room-wrap {
+    padding: 0 0.5rem;
+  }
+  .room-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    overflow-y: auto;
+  }
+  .room-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}@media(max-width: 720px) {
   .room-body { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
 }
+
 
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 .tab-bar {
@@ -325,3 +339,16 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.2); border-radius: 2px; }
+
+
+.desktop-only { display: contents; }
+.mobile-only  { display: none; }
+.mobile-tabs  { display: none; padding: 0.5rem 0; flex-shrink: 0; }
+.mobile-only.hidden { display: none !important; }
+
+@media (max-width: 720px) {
+  .desktop-only { display: none !important; }
+  .mobile-only  { display: flex !important; flex-direction: column; height: 100%; min-height: 0; }
+  .mobile-tabs  { display: flex !important; }
+  .room-body    { grid-template-columns: 1fr !important; grid-template-rows: 1fr !important; }
+}
