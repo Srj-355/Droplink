@@ -109,28 +109,40 @@
 // };
 
 import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 
 export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
-  const qrRef    = useRef(null);
-  const qrDone   = useRef(false);
+  const canvasRef = useRef(null);
   const [cc, setCc] = useState(false);
   const [uc, setUc] = useState(false);
+  const [qrReady, setQrReady] = useState(false);
 
   useEffect(() => {
-    if (!shareUrl || qrDone.current) return;
-    const try_ = () => {
-      if (!qrRef.current || !window.QRCode) { setTimeout(try_, 200); return; }
-      qrRef.current.innerHTML = "";
-      new window.QRCode(qrRef.current, {
-        text: shareUrl, width: 156, height: 156,
-        colorDark: "#0f172a", colorLight: "rgba(255,255,255,0)",
-      });
-      qrDone.current = true;
+    // shareUrl may be empty on first render — wait until it's populated
+    if (!shareUrl) return;
+
+    const render = () => {
+      if (!canvasRef.current) {
+        // Canvas not in DOM yet — retry on next frame
+        requestAnimationFrame(render);
+        return;
+      }
+      QRCode.toCanvas(canvasRef.current, shareUrl, {
+        width: 160,
+        margin: 1,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      })
+        .then(() => setQrReady(true))
+        .catch((err) => console.warn("QR render failed:", err));
     };
-    try_();
+
+    render();
   }, [shareUrl]);
 
-  const copy = (text, set) => navigator.clipboard.writeText(text).then(() => { set(true); setTimeout(() => set(false), 2000); });
+  const copy = (text, set) =>
+    navigator.clipboard.writeText(text)
+      .then(() => { set(true); setTimeout(() => set(false), 2000); })
+      .catch(() => {});
 
   return (
     <div className="setup">
@@ -153,7 +165,17 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
 
         {/* QR */}
         <div style={s.qrWrap}>
-          <div ref={qrRef} style={s.qr} />
+          {/* Canvas always in DOM so ref is never null */}
+          <div style={{ ...s.qrBox, opacity: qrReady ? 1 : 0, transition: "opacity 0.3s" }}>
+            <canvas ref={canvasRef} />
+          </div>
+          {/* Placeholder while QR renders */}
+          {!qrReady && (
+            <div style={s.qrPlaceholder}>
+              <span className="dot-pulse" />
+              <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Generating QR…</span>
+            </div>
+          )}
           <span style={s.qrLabel}>Scan to join instantly</span>
         </div>
 
@@ -186,16 +208,22 @@ const s = {
     letterSpacing: "0.22em", color: "#0ea5e9",
   },
   qrWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" },
-  qr: {
-    background: "rgba(255,255,255,0.85)", borderRadius: 14, padding: 14,
+  qrBox: {
+    background: "rgba(255,255,255,0.9)", borderRadius: 14, padding: 12,
     boxShadow: "0 4px 20px rgba(14,165,233,0.12)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  qrPlaceholder: {
+    position: "absolute",
+    display: "flex", alignItems: "center", gap: "0.5rem",
   },
   qrLabel: { fontSize: "0.66rem", color: "#94a3b8" },
   urlRow: {
     borderRadius: 10, padding: "0.6rem 0.9rem",
     display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer",
+    overflow: "hidden",
   },
-  urlText: { flex: 1, fontSize: "0.68rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  urlText: { flex: 1, fontSize: "0.68rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
   urlAction: { fontSize: "0.68rem", color: "#0ea5e9", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 600 },
   waitRow: { display: "flex", alignItems: "center", gap: "0.6rem" },
 };
