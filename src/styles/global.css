@@ -637,6 +637,11 @@ body {
   display: none !important;
 }
 
+/* mob-hidden is the class applied by RoomScreen for the inactive mobile panel */
+.mobile-only.mob-hidden {
+  display: none !important;
+}
+
 @media (max-width: 720px) {
   .desktop-only {
     display: none !important;
