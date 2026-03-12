@@ -8,7 +8,7 @@ import QueuePanel from "../components/QueuePanel";
 export default function RoomScreen({
   roomCode, connected, reconnecting,
   messages, transfers, fileQueue,
-  peerError, history, rooms,
+  peerError, history, historyLoading, rooms,
   onQueueFile, onSendChat, onLeave,
   onClearTransfers, onPause, onResume,
   onCancelTransfer, onCancelReceive,
@@ -73,7 +73,7 @@ export default function RoomScreen({
         )}
         {tab === "history" && (
           <HistoryPanel
-            history={history} loading={false}
+            history={history} loading={historyLoading}
             rooms={rooms}
             currentRoom={roomCode}
             onClear={onClearHistory}
@@ -161,5 +161,5 @@ const s = {
   leftPanel: { display: "flex", flexDirection: "column", gap: "0.75rem", overflow: "hidden", minHeight: 0, height: "100%" },
   tabRow: { display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 },
   tabContent: { flex: 1, overflow: "hidden", minHeight: 0, display: "flex", flexDirection: "column" },
-  list: { display: "flex", flexDirection: "column", gap: "0.45rem", overflowY: "auto", flex: 1 },
+  list: { display: "flex", flexDirection: "column", gap: "0.45rem", overflowY: "auto", flex: 1, minWidth: 0 },
 };

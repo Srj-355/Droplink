@@ -1,7 +1,7 @@
 import "./styles/global.css";
 import { useCallback, useRef } from "react";
 import { usePeer } from "./hooks/usePeer";
-import { useHistory } from "./hooks/Usehistory";
+import { useHistory } from "./hooks/useHistory";
 import HomeScreen from "./screens/HomeScreen";
 import HostScreen from "./screens/HostScreen";
 import JoinScreen from "./screens/JoinScreen";
@@ -9,7 +9,7 @@ import RoomScreen from "./screens/RoomScreen";
 
 export default function App() {
   const {
-    history,
+    history, loading: historyLoading,
     rooms,
     addRecord, removeRecord,
     clearHistory, clearRoomHistory,
@@ -93,6 +93,7 @@ export default function App() {
             fileQueue={fileQueue}
             peerError={peerError}
             history={history}
+            historyLoading={historyLoading}
             rooms={rooms}
             onQueueFile={queueFile}
             onSendChat={sendChat}

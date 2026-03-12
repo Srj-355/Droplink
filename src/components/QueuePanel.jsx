@@ -46,7 +46,7 @@ const s = {
     overflow: "hidden", minWidth: 0,
   },
   icon: { fontSize: "0.85rem", flexShrink: 0 },
-  name: { fontSize: "0.72rem", color: "#334155", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  name: { fontSize: "0.72rem", color: "#334155", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   size: { fontSize: "0.62rem", color: "#94a3b8", flexShrink: 0 },
   removeBtn: {
     background: "none", border: "none", color: "#cbd5e1",
