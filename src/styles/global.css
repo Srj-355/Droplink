@@ -469,12 +469,13 @@ body {
 @media(max-width: 720px) {
   .room-wrap {
     padding: 0 0.5rem;
+    grid-template-rows: auto auto 1fr;
   }
 
   .room-body {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .room-header {
@@ -482,6 +483,7 @@ body {
     gap: 0.5rem;
   }
 }
+
 
 @media(max-width: 720px) {
   .room-body {
@@ -652,6 +654,13 @@ body {
     flex-direction: column;
     height: 100%;
     min-height: 0;
+    min-width: 0;
+  }
+
+  .mobile-only > div {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
   }
 
   .mobile-tabs {
@@ -661,5 +670,6 @@ body {
   .room-body {
     grid-template-columns: 1fr !important;
     grid-template-rows: 1fr !important;
+    min-width: 0;
   }
-}
+}
