@@ -349,6 +349,18 @@ export function usePeer({ onTransferComplete } = {}) {
         return;
       }
 
+      // Sender cancelled a transfer
+      if (data.type === "sender-cancelled") {
+        const { fileId } = data;
+        const buf = receiveBuffers.current[fileId];
+        if (buf?.mode === "stream" && buf.writable) buf.writable.abort().catch(() => {});
+        delete receiveBuffers.current[fileId];
+        delete speedTrackers.current[fileId];
+        updateTransfer(fileId, { status: "cancelled" });
+        addMessage({ type: "system", text: "🚫 Sender cancelled the transfer." });
+        return;
+      }
+
       // Resume request from receiver after reconnect
       if (data.type === "resume-request") {
         const { fileId, receivedCount } = data;
@@ -777,6 +789,7 @@ export function usePeer({ onTransferComplete } = {}) {
     }
     updateTransfer(fileId, { status: "cancelled" });
     setFileQueue((prev) => prev.map((q) => q.id === fileId ? { ...q, status: "cancelled" } : q));
+    connRef.current?.send(encodeJSON({ type: "sender-cancelled", fileId }));
     if (activeFileId.current === fileId) {
       activeFileId.current = null;
       setTimeout(_advanceQueue, 300);
