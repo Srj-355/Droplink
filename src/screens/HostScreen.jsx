@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import Branding from "../components/Branding";
 
 export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
   const canvasRef = useRef(null);
@@ -43,7 +44,7 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
     <div className="setup">
       <div className="glass setup-card">
         <div className="setup-head">
-          <span className="setup-title">Your Room</span>
+          <Branding onGoHome={onLeave} />
           <button className="back-btn" onClick={onLeave}>← Leave</button>
         </div>
 

@@ -1,9 +1,11 @@
+import Branding from "../components/Branding";
+
 export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peerError, libsReady }) {
   return (
     <div className="setup">
       <div className="glass setup-card">
         <div className="setup-head">
-          <span className="setup-title">Join Room</span>
+          <Branding onGoHome={onBack} />
           <button className="back-btn" onClick={onBack}>← Back</button>
         </div>
 

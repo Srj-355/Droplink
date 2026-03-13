@@ -4,6 +4,7 @@ import TransferItem from "../components/TransferItem";
 import ChatPanel from "../components/ChatPanel";
 import HistoryPanel from "../components/HistoryPanel";
 import QueuePanel from "../components/QueuePanel";
+import Branding from "../components/Branding";
 
 export default function RoomScreen({
   roomCode, connected, reconnecting,
@@ -93,7 +94,7 @@ export default function RoomScreen({
       {/* Header */}
       <div className="room-header">
         <div className="room-header-l">
-          <span className="room-logo">⚡ DROPLINK</span>
+          <Branding onGoHome={onLeave} />
           {roomCode && <span className="room-code-badge">#{roomCode}</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
