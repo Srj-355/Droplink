@@ -442,6 +442,11 @@ export function usePeer({ onTransferComplete } = {}) {
       setScreen("room");
       addMessage({ type: "system", text: "🔗 Connected — end-to-end encrypted." });
 
+      // Update URL to current room
+      const url = new URL(window.location);
+      url.searchParams.set("room", targetRoomCode.current);
+      window.history.replaceState({}, "", url);
+
       // Send resume requests for any in-flight receives (after reconnect)
       Object.entries(receiveBuffers.current).forEach(([fileId, buf]) => {
         if (buf.received > 0) {
@@ -539,6 +544,9 @@ export function usePeer({ onTransferComplete } = {}) {
         targetRoomCode.current = id;
         const url = `${window.location.origin}${window.location.pathname}?room=${id}`;
         setRoomCode(id); setShareUrl(url); setPeer(p); setScreen("host");
+
+        // Update address bar for host
+        window.history.replaceState({}, "", url);
       });
       p.on("connection", (conn) => { setupConn.current(conn); });
       p.on("error", (err) => {
@@ -844,6 +852,11 @@ export function usePeer({ onTransferComplete } = {}) {
     setPeer(null); setConnected(false); setMessages([]); setTransfers([]);
     setFileQueue([]); setRoomCode(""); setShareUrl(""); setPeerError("");
     setJoinCode(""); setScreen("home"); setReconnecting(false);
+
+    // Clear URL parameters so refreshing stays on the home page
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (e) { console.warn("Failed to clear URL:", e); }
   }, []);
 
   // ── Public API ─────────────────────────────────────────────────────────────
