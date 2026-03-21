@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
+
 export default function HomeScreen({ onHost, onJoin, peerError, libsReady }) {
   return (
     <div style={s.page}>
+      <EssenceField />
       <div style={s.hero}>
         {/* Logo mark */}
         <div style={s.logoWrap}>
@@ -14,13 +17,13 @@ export default function HomeScreen({ onHost, onJoin, peerError, libsReady }) {
         {/* Action cards */}
         <div style={s.grid}>
           <ActionCard
-            icon={<SendIcon />} label="Send Files"
-            desc="Create a private room and invite your peer via code or QR"
+            icon={<SendIcon />} label="Send files"
+            desc="Start a transfer and share your code"
             accent="#0ea5e9" onClick={onHost}
           />
           <ActionCard
-            icon={<ReceiveIcon />} label="Receive Files"
-            desc="Enter a room code or scan a QR to connect instantly"
+            icon={<ReceiveIcon />} label="Receive files"
+            desc="Enter a code to connect and download"
             accent="#8b5cf6" onClick={onJoin}
           />
         </div>
@@ -93,10 +96,129 @@ function ReceiveIcon() {
   );
 }
 
+function EssenceField() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animationFrameId;
+
+    let w = (canvas.width = window.innerWidth);
+    let h = (canvas.height = window.innerHeight);
+
+    const isMobile = w < 768;
+    const particleCount = isMobile ? 40 : 100;
+    const particles = [];
+    const mouse = { x: -1000, y: -1000 };
+
+    class Particle {
+      constructor() {
+        this.init();
+      }
+      init() {
+        this.x = Math.random() * w;
+        this.y = Math.random() * h;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.size = Math.random() * (isMobile ? 1.5 : 2.5) + 1;
+        this.color = ["#0ea5e9", "#8b5cf6", "#06b6d4"][Math.floor(Math.random() * 3)];
+        this.alpha = Math.random() * 0.3 + 0.1;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Wrap around
+        if (this.x < 0) this.x = w;
+        if (this.x > w) this.x = 0;
+        if (this.y < 0) this.y = h;
+        if (this.y > h) this.y = 0;
+
+        // Mouse interaction
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const radius = isMobile ? 100 : 180;
+
+        if (dist < radius) {
+          const force = (radius - dist) / radius;
+          const angle = Math.atan2(dy, dx);
+          this.x -= Math.cos(angle) * force * 3;
+          this.y -= Math.sin(angle) * force * 3;
+        }
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.alpha;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle());
+    }
+
+    const render = () => {
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach((p) => {
+        p.update();
+        p.draw();
+      });
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    const handleResize = () => {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    };
+
+    const handleMouseMove = (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+
+    const handleTouchMove = (e) => {
+      if (e.touches.length > 0) {
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove);
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: "none",
+        background: "transparent",
+      }}
+    />
+  );
+}
+
 const FEATURES = [
-  "🔒 E2E Encrypted", "📁 Any File Type", "💬 Live Chat",
-  "📱 QR Pairing", "⚡ WebRTC P2P", "🚫 No Limits",
-  "📊 Adaptive Chunks", "♻️ Auto-Resume", "📜 History",
+  "📁 Any File Type", "💬 Live Chat",
+  "📱 QR Pairing", "🚫 No Limits",
+  "📊 Adaptive Chunks", "📜 History",
   "⏸ Pause & Cancel", "📦 File Queue",
 ];
 
