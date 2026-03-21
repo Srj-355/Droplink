@@ -45,7 +45,7 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
       <div className="glass setup-card">
         <div className="setup-head">
           <Branding onGoHome={onLeave} />
-          <button className="back-btn" onClick={onLeave}>← Leave</button>
+          <button className="back-btn back-btn-danger" onClick={onLeave}>← Leave</button>
         </div>
 
         {/* Room code */}

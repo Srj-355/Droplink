@@ -109,7 +109,7 @@ export default function RoomScreen({
             </div>
           )}
           <button
-            className="btn btn-outline"
+            className="btn btn-outline btn-leave"
             onClick={onLeave}
             style={{ fontSize: "0.74rem" }}
           >

@@ -21,7 +21,7 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
             style={{ textTransform: "uppercase", letterSpacing: "0.22em", fontSize: "1.4rem", textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0ea5e9" }}
           />
           <button
-            className="btn btn-primary"
+            className="btn btn-primary btn-connect"
             onClick={onJoin}
             disabled={!joinCode.trim() || !libsReady}
             style={{ width: "100%", padding: "0.8rem", fontSize: "0.88rem" }}
