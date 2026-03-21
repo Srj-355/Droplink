@@ -14,12 +14,12 @@ export default function HomeScreen({ onHost, onJoin, peerError, libsReady }) {
         {/* Action cards */}
         <div style={s.grid}>
           <ActionCard
-            icon="📡" label="Host a Room"
+            icon={<SendIcon />} label="Send Files"
             desc="Create a private room and invite your peer via code or QR"
             accent="#0ea5e9" onClick={onHost}
           />
           <ActionCard
-            icon="🔗" label="Join a Room"
+            icon={<ReceiveIcon />} label="Receive Files"
             desc="Enter a room code or scan a QR to connect instantly"
             accent="#8b5cf6" onClick={onJoin}
           />
@@ -66,6 +66,30 @@ function ActionCard({ icon, label, desc, accent, onClick }) {
       <div style={s.cardDesc}>{desc}</div>
       <div style={{ ...s.cardArrow, color: accent }}>→</div>
     </div>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'float 3s ease-in-out infinite' }}>
+      <path d="M12 4V20M12 4L7 9M12 4L17 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle className="essence-particle" cx="12" cy="18" r="1.8" style={{ animation: 'essence-up 2.2s infinite 0s' }} />
+      <circle className="essence-particle" cx="8" cy="16" r="1.2" style={{ animation: 'essence-up 2.2s infinite 0.5s' }} />
+      <circle className="essence-particle" cx="16" cy="16" r="1.2" style={{ animation: 'essence-up 2.2s infinite 1.0s' }} />
+      <circle className="essence-particle" cx="12" cy="14" r="1.5" style={{ animation: 'essence-up 2.2s infinite 1.5s' }} />
+    </svg>
+  );
+}
+
+function ReceiveIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'float 3s ease-in-out infinite' }}>
+      <path d="M12 20V4M12 20L7 15M12 20L17 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle className="essence-particle" cx="12" cy="6" r="1.8" style={{ animation: 'essence-down 2.2s infinite 0s' }} />
+      <circle className="essence-particle" cx="8" cy="8" r="1.2" style={{ animation: 'essence-down 2.2s infinite 0.5s' }} />
+      <circle className="essence-particle" cx="16" cy="8" r="1.2" style={{ animation: 'essence-down 2.2s infinite 1.0s' }} />
+      <circle className="essence-particle" cx="12" cy="10" r="1.5" style={{ animation: 'essence-down 2.2s infinite 1.5s' }} />
+    </svg>
   );
 }
 

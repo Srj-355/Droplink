@@ -657,7 +657,7 @@ body {
     min-width: 0;
   }
 
-  .mobile-only > div {
+  .mobile-only>div {
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -672,4 +672,35 @@ body {
     grid-template-rows: 1fr !important;
     min-width: 0;
   }
-}
+}
+
+/* ── Essence animations ──────────────────────────────────────────────────────*/
+
+@keyframes essence-up {
+  0% { transform: translateY(8px) scale(0.5); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(-12px) scale(1.2); opacity: 0; }
+}
+
+@keyframes essence-down {
+  0% { transform: translateY(-12px) scale(1.2); opacity: 0; }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(8px) scale(0.5); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.essence-particle {
+  fill: currentColor;
+  filter: blur(1px);
+}
+
+
+.bg-orb {
+  animation: none !important;
+}
