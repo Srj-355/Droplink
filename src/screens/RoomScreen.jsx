@@ -159,7 +159,7 @@ export default function RoomScreen({
 }
 
 const s = {
-  leftPanel: { display: "flex", flexDirection: "column", gap: "0.75rem", overflow: "hidden", minHeight: 0, height: "100%" },
+  leftPanel: { display: "flex", flexDirection: "column", gap: "0.75rem", overflow: "hidden", minHeight: 0, height: "100%", minWidth: 0 },
   tabRow: { display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 },
   tabContent: { flex: 1, overflow: "hidden", minHeight: 0, display: "flex", flexDirection: "column" },
   list: { display: "flex", flexDirection: "column", gap: "0.45rem", overflowY: "auto", flex: 1, minWidth: 0 },

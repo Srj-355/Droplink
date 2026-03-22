@@ -33,8 +33,8 @@
 
   --text: #0f172a;
   --text-2: #334155;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
+  --text-muted: #475569;
+  --text-dim: #64748b;
 
   /* ── Radii ── */
   --r-xs: 6px;
@@ -497,9 +497,11 @@ body {
 .room-body {
   display: grid;
   grid-template-columns: 1fr 340px;
+  grid-template-rows: 1fr;
   gap: 1rem;
   padding: 1rem 0;
   overflow: hidden;
+  height: 100%;
   min-height: 0;
 }
 
@@ -510,22 +512,38 @@ body {
   }
 
   .room-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
     overflow: hidden;
+    padding: 0.5rem 0;
+    min-width: 0;
   }
 
   .room-header {
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-}
 
+  .desktop-only {
+    display: none !important;
+  }
 
-@media(max-width: 720px) {
-  .room-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
+  .mobile-only {
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .mobile-only>div {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .mobile-tabs {
+    display: flex !important;
   }
 }
 
@@ -641,7 +659,7 @@ body {
 /* ── Scrollbars ──────────────────────────────────────────────────────────────*/
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.25) transparent;
+  scrollbar-color: rgba(100, 116, 139, 0.45) rgba(100, 116, 139, 0.05);
 }
 
 ::-webkit-scrollbar {
@@ -653,13 +671,16 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.2);
-  border-radius: 2px;
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 4px;
 }
 
 
 .desktop-only {
-  display: contents;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .mobile-only {
@@ -681,35 +702,7 @@ body {
   display: none !important;
 }
 
-@media (max-width: 720px) {
-  .desktop-only {
-    display: none !important;
-  }
-
-  .mobile-only {
-    display: flex !important;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-    min-width: 0;
-  }
-
-  .mobile-only>div {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-  }
-
-  .mobile-tabs {
-    display: flex !important;
-  }
-
-  .room-body {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: 1fr !important;
-    min-width: 0;
-  }
-}
+/* Simplified mobile behavior consolidated in previous media query block */
 
 /* ── Essence animations ──────────────────────────────────────────────────────*/
 

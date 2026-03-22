@@ -13,6 +13,7 @@ export const CHUNK_ACK_TIMEOUT = 8000;
 export const SPEED_UPDATE_MS   = 500;
 export const RECONNECT_MAX     = 3;
 export const RECONNECT_BASE_MS = 1500;
+export const RECONNECT_TIMEOUT_MS = 3000;
 
 // ─── PeerJS Signalling Server ─────────────────────────────────────────────────
 // Self-hosted on Render.com — free, no card required.

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   getChunkSize, generateRoomCode, formatBytes,
   ICE_SERVERS, CHUNK_RETRY_LIMIT, CHUNK_ACK_TIMEOUT,
-  SPEED_UPDATE_MS, RECONNECT_MAX, RECONNECT_BASE_MS,
+  SPEED_UPDATE_MS, RECONNECT_MAX, RECONNECT_BASE_MS, RECONNECT_TIMEOUT_MS,
   USE_CUSTOM_PEER_SERVER, PEER_SERVER,
 } from "../constants";
 import Peer from "peerjs";
@@ -123,6 +123,8 @@ export function usePeer({ onTransferComplete } = {}) {
   const intentionalLeave = useRef(false);
   const targetRoomCode  = useRef("");
   const isHost          = useRef(false);
+  const leaveRoomRef    = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   // Keep refs in sync with state
   useEffect(() => { connectedRef.current = connected; }, [connected]);
@@ -138,6 +140,17 @@ export function usePeer({ onTransferComplete } = {}) {
     if (p) { setJoinCode(p.toUpperCase()); setScreen("join"); }
   }, []);
 
+  // ── Tab close protection ───────────────────────────────────────────────────
+  useEffect(() => {
+    const handleUnload = () => { if (peerRef.current) leaveRoomRef.current?.(); };
+    window.addEventListener("beforeunload", handleUnload);
+    window.addEventListener("pagehide",      handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      window.removeEventListener("pagehide",      handleUnload);
+    };
+  }, []);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const addMessage = useCallback((msg) =>
     setMessages((prev) => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }])
@@ -146,6 +159,21 @@ export function usePeer({ onTransferComplete } = {}) {
   const updateTransfer = useCallback((fileId, patch) =>
     setTransfers((prev) => prev.map((t) => t.id === fileId ? { ...t, ...patch } : t))
   , []);
+
+  // ── Auto-return helper for lost connections ────────────────────────────────
+  const triggerAutoReturn = useCallback((msg = "❌ Connection lost. Peer no longer available. Returning home…") => {
+    setReconnecting(false);
+    addMessage({ type: "system", text: msg });
+    setTransfers((prev) => prev.map((t) =>
+      t.status === "reconnecting" || t.status === "sending" || t.status === "receiving"
+        ? { ...t, status: "error" } : t
+    ));
+    setTimeout(() => {
+      if (!intentionalLeave.current && !connectedRef.current) {
+        leaveRoomRef.current?.();
+      }
+    }, RECONNECT_TIMEOUT_MS);
+  }, [addMessage]);
 
   // ── Speed tracker ──────────────────────────────────────────────────────────
   const tickSpeed = useCallback((fileId, bytesDone, total) => {
@@ -442,6 +470,12 @@ export function usePeer({ onTransferComplete } = {}) {
       setScreen("room");
       addMessage({ type: "system", text: "🔗 Connected — end-to-end encrypted." });
 
+      // Clear the global reconnect safety timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
       // Update URL to current room
       const url = new URL(window.location);
       url.searchParams.set("room", targetRoomCode.current);
@@ -488,26 +522,36 @@ export function usePeer({ onTransferComplete } = {}) {
           if (buf.mode === "stream" && buf.writable) try { await buf.writable.abort(); } catch { }
         });
         sendStates.current = {}; speedTrackers.current = {}; receiveBuffers.current = {};
-        setTransfers((prev) => prev.map((t) =>
-          t.status !== "done" && t.status !== "cancelled" ? { ...t, status: "error" } : t
-        ));
-        addMessage({ type: "system", text: "⚠️ Peer disconnected." });
+        triggerAutoReturn("⚠️ Peer disconnected. Returning home…");
       }
     });
 
-    connection.on("error", (err) => { console.error("DataConnection error:", err); });
+    connection.on("error", (err) => {
+      console.error("DataConnection error:", err);
+      // If we are currently reconnecting but this connection failed to open, trigger the next retry
+      if (!connectedRef.current && !intentionalLeave.current) {
+        if (connRef.current === connection) connRef.current = null;
+        _attemptReconnect();
+      }
+    });
   };
 
   // ── Auto-reconnect ─────────────────────────────────────────────────────────
   const _attemptReconnect = useCallback(() => {
     if (intentionalLeave.current) return;
+
+    // Start a global safety timer on the very first reconnect attempt
+    if (reconnectCount.current === 0 && !reconnectTimeoutRef.current) {
+      reconnectTimeoutRef.current = setTimeout(() => {
+        if (!connectedRef.current && !intentionalLeave.current) {
+          triggerAutoReturn("❌ Reconnection timed out. Returning home…");
+        }
+      }, 20000); // 20-second hard limit for global recovery
+    }
+
     const attempt = reconnectCount.current + 1;
     if (attempt > RECONNECT_MAX) {
-      setReconnecting(false);
-      addMessage({ type: "system", text: "❌ Could not reconnect after 3 attempts." });
-      setTransfers((prev) => prev.map((t) =>
-        t.status === "reconnecting" ? { ...t, status: "error" } : t
-      ));
+      triggerAutoReturn();
       return;
     }
     reconnectCount.current = attempt;
@@ -524,12 +568,28 @@ export function usePeer({ onTransferComplete } = {}) {
 
       if (isHost.current) {
         addMessage({ type: "system", text: "⏳ Waiting for peer to rejoin…" });
+        // Schedule next attempt (same backoff delay) so host's counter keeps incrementing
+        setTimeout(() => {
+          if (!intentionalLeave.current && !connectedRef.current) _attemptReconnect();
+        }, delay);
       } else {
         const conn = p.connect(code, { reliable: true, serialization: "raw" });
         setupConn.current(conn);
+
+        // Catch errors during reconnect - fail fast if room is gone, otherwise retry
+        const onReconnectError = (err) => {
+          p.off("error", onReconnectError);
+          if (err.type === "peer-unavailable" || err.type === "connection-failed") {
+            triggerAutoReturn("❌ Room no longer exists. Returning home…");
+          } else if (!connectedRef.current && !intentionalLeave.current) {
+            // For other errors (network/server), try the next attempt
+            _attemptReconnect();
+          }
+        };
+        p.on("error", onReconnectError);
       }
     }, delay);
-  }, [addMessage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addMessage, triggerAutoReturn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(() => {
@@ -858,6 +918,9 @@ export function usePeer({ onTransferComplete } = {}) {
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (e) { console.warn("Failed to clear URL:", e); }
   }, []);
+
+  // Sync the leaveRoomRef
+  leaveRoomRef.current = leaveRoom;
 
   // ── Public API ─────────────────────────────────────────────────────────────
   return {

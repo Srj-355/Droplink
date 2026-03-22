@@ -126,7 +126,7 @@ function HistoryRow({ record: r, onRemove, showRoom }) {
 }
 
 const s = {
-  wrap: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: "0.4rem" },
+  wrap: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: "0.4rem" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.1rem", flexShrink: 0 },
   headTitle: { fontSize: "0.75rem", fontWeight: 600, color: "#334155" },
   headR: { display: "flex", alignItems: "center", gap: "0.4rem" },
@@ -151,13 +151,13 @@ const s = {
     padding: "0.02rem 0.35rem", fontSize: "0.58rem", color: "#94a3b8",
   },
 
-  list: { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.4rem", minWidth: 0 },
-  row: { borderRadius: 10, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0 },
+  list: { flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: "0.4rem", minWidth: 0, minHeight: 0, paddingBottom: "1.5rem" },
+  row: { borderRadius: 10, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0, flexShrink: 0 },
   rowTop: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.28rem", minWidth: 0, overflow: "hidden" },
   dir: { fontSize: "0.58rem", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
   dirOut: { color: "#0ea5e9" },
   dirIn: { color: "#10b981" },
-  rName: { fontSize: "0.74rem", color: "#0f172a", fontWeight: 500, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  rName: { fontSize: "0.74rem", color: "#0f172a", fontWeight: 500, flex: 1, minWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   roomTag: {
     fontSize: "0.56rem", fontFamily: "'JetBrains Mono', monospace",
     background: "rgba(139,92,246,0.1)", color: "#8b5cf6",
@@ -169,6 +169,6 @@ const s = {
   stErr: { color: "#e11d48" },
   removeBtn: { background: "none", border: "none", color: "#e51515ff", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
   rowFoot: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
-  meta: { fontSize: "0.6rem", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
-  metaTime: { fontSize: "0.6rem", color: "#cbd5e1", marginLeft: "auto" },
+  meta: { fontSize: "0.6rem", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" },
+  metaTime: { fontSize: "0.6rem", color: "#94a3b8", marginLeft: "auto" },
 };
