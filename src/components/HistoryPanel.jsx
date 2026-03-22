@@ -167,7 +167,7 @@ const s = {
   status: { fontSize: "0.68rem", fontWeight: 700, flexShrink: 0 },
   stDone: { color: "#059669" },
   stErr: { color: "#e11d48" },
-  removeBtn: { background: "none", border: "none", color: "#cbd5e1", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
+  removeBtn: { background: "none", border: "none", color: "#e51515ff", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
   rowFoot: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
   meta: { fontSize: "0.6rem", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" },
   metaTime: { fontSize: "0.6rem", color: "#cbd5e1", marginLeft: "auto" },
