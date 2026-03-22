@@ -7,6 +7,55 @@ import HomeScreen from "./screens/HomeScreen";
 import HostScreen from "./screens/HostScreen";
 import JoinScreen from "./screens/JoinScreen";
 import RoomScreen from "./screens/RoomScreen";
+import FAQScreen from "./screens/FAQScreen";
+import ContactScreen from "./screens/ContactScreen";
+import { useState } from "react";
+
+const footerStyle = {
+  position: "fixed",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  padding: "0.8rem",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "0.2rem",
+  zIndex: 100,
+  pointerEvents: "none",
+  background: "linear-gradient(to top, rgba(232,244,248,0.8), transparent)",
+  backdropFilter: "blur(4px)",
+};
+
+const footerContentStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.8rem",
+  pointerEvents: "auto",
+};
+
+const footerLinkStyle = {
+  fontSize: "0.65rem",
+  fontWeight: 700,
+  color: "var(--text-dim)",
+  cursor: "pointer",
+  transition: "all 0.2s",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  padding: "0.2rem 0.5rem",
+};
+
+const footerSeparatorStyle = {
+  fontSize: "0.6rem",
+  color: "rgba(0,0,0,0.1)",
+};
+
+const footerCopyrightStyle = {
+  fontSize: "0.55rem",
+  color: "var(--text-dim)",
+  opacity: 0.6,
+  fontWeight: 500,
+};
 
 export default function App() {
   const {
@@ -44,6 +93,13 @@ export default function App() {
   // Keep ref in sync with roomCode state
   roomCodeRef.current = roomCode;
 
+  const [prevScreen, setPrevScreen] = useState("home");
+
+  const navigateTo = (newScreen) => {
+    setPrevScreen(screen);
+    setScreen(newScreen);
+  };
+
   return (
     <>
       {/* Animated background */}
@@ -54,7 +110,7 @@ export default function App() {
         <div className="bg-orb bg-orb-4" />
       </div>
 
-      <div className="layer">
+      <div className="layer" style={{ paddingBottom: "3.5rem" }}>
         {screen === "home" && (
           <HomeScreen
             onHost={createRoom}
@@ -110,7 +166,28 @@ export default function App() {
             onRemoveHistory={removeRecord}
           />
         )}
+
+        {screen === "faq" && (
+          <FAQScreen onBack={() => setScreen(prevScreen)} />
+        )}
+
+        {screen === "contact" && (
+          <ContactScreen onBack={() => setScreen(prevScreen)} />
+        )}
       </div>
+
+      {!["faq", "contact"].includes(screen) && (
+        <footer style={footerStyle}>
+          <div style={footerContentStyle}>
+            <span style={footerLinkStyle} onClick={() => navigateTo("faq")}>FAQ</span>
+            <span style={footerSeparatorStyle}>•</span>
+            <span style={footerLinkStyle} onClick={() => navigateTo("contact")}>Contact Us</span>
+          </div>
+          <div style={footerCopyrightStyle}>
+            © 2026 Droplink • Secure P2P
+          </div>
+        </footer>
+      )}
     </>
   );
 }
