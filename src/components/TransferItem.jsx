@@ -51,6 +51,11 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel 
               {t.chunkSize >= 1024 * 1024 ? `${t.chunkSize / (1024 * 1024)}MB` : `${t.chunkSize / 1024}KB`} chunks
             </span>
           )}
+          {t.compressed && !isDone && !isErr && !isCancelled && (
+            <span style={{ ...s.badge, color: "#8b5cf6", background: "rgba(139,92,246,0.12)" }}>
+              ⚡ Compressed
+            </span>
+          )}
         </div>
 
         <div style={s.footR}>

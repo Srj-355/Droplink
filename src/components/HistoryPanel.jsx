@@ -119,6 +119,9 @@ function HistoryRow({ record: r, onRemove, showRoom }) {
         <span style={s.meta}>{formatBytes(r.size)}</span>
         {r.avgSpeed > 0 && <span style={s.meta}>{formatSpeed(r.avgSpeed)} avg</span>}
         {r.duration > 0 && <span style={s.meta}>{r.duration.toFixed(1)}s</span>}
+        {r.compressed && (
+          <span style={{ ...s.meta, color: "#8b5cf6", fontWeight: 600 }} title="Compressed">⚡</span>
+        )}
         <span style={s.metaTime}>{date} · {time}</span>
       </div>
     </div>

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
 
-export default function HomeScreen({ onHost, onJoin, peerError, libsReady }) {
+export default function HomeScreen({ onHost, onJoin, onLogoClick, peerError, libsReady }) {
   return (
     <div style={s.page}>
       <EssenceField />
       <div style={s.hero}>
         {/* Logo mark */}
-        <div style={s.logoWrap}>
+        <div style={s.logoWrap} onClick={onLogoClick}>
           <div style={s.logoRing} />
           <div style={s.logoIcon}>⚡</div>
         </div>
@@ -232,7 +232,7 @@ const s = {
     gap: "2rem", maxWidth: 520, width: "100%",
     animation: "card-enter 0.5s cubic-bezier(0.34,1.56,0.64,1) both",
   },
-  logoWrap: { position: "relative", width: 84, height: 84 },
+  logoWrap: { position: "relative", width: 84, height: 84, cursor: "pointer" },
   logoRing: {
     position: "absolute", inset: 0, borderRadius: "50%",
     background: "linear-gradient(135deg, rgba(14,165,233,0.25), rgba(139,92,246,0.25))",

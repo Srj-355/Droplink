@@ -115,6 +115,7 @@ export default function App() {
           <HomeScreen
             onHost={createRoom}
             onJoin={() => { setPeerError(""); setScreen("join"); }}
+            onLogoClick={leaveRoom}
             peerError={peerError}
             libsReady={libsReady}
           />
@@ -134,7 +135,7 @@ export default function App() {
             joinCode={joinCode}
             setJoinCode={setJoinCode}
             onJoin={joinRoom}
-            onBack={() => { setPeerError(""); setScreen("home"); }}
+            onBack={leaveRoom}
             peerError={peerError}
             libsReady={libsReady}
           />

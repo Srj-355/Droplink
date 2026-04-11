@@ -3,9 +3,10 @@
 // Chrome SCTP maxMessageSize = 262144 bytes (256 KB).
 // Our frame header adds ~28 bytes per chunk. Max safe payload = 128 KB.
 export const CHUNK_TIERS = [
-  { maxSize: 1 * 1024 * 1024,  chunkSize: 16 * 1024  }, // < 1 MB  → 16 KB chunks
-  { maxSize: 10 * 1024 * 1024, chunkSize: 64 * 1024  }, // <10 MB  → 64 KB chunks
-  { maxSize: Infinity,          chunkSize: 128 * 1024 }, // ≥10 MB  → 128 KB chunks
+  { maxSize: 1 * 1024 * 1024,   chunkSize: 16 * 1024   }, // < 1 MB  → 16 KB chunks
+  { maxSize: 10 * 1024 * 1024,  chunkSize: 64 * 1024   }, // <10 MB  → 64 KB chunks
+  { maxSize: 100 * 1024 * 1024, chunkSize: 128 * 1024  }, // <100 MB → 128 KB chunks
+  { maxSize: Infinity,           chunkSize: 224 * 1024  }, // ≥100 MB → 224 KB chunks (Safely <256KB)
 ];
 
 export const CHUNK_RETRY_LIMIT = 3;
@@ -13,7 +14,8 @@ export const CHUNK_ACK_TIMEOUT = 8000;
 export const SPEED_UPDATE_MS   = 500;
 export const RECONNECT_MAX     = 3;
 export const RECONNECT_BASE_MS = 1500;
-export const RECONNECT_TIMEOUT_MS = 3000;
+export const RECONNECT_TIMEOUT_MS = 15000;
+export const COMPRESSION_ENABLED = true;
 
 // ─── PeerJS Signalling Server ─────────────────────────────────────────────────
 // Self-hosted on Render.com — free, no card required.

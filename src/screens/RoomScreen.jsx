@@ -84,7 +84,11 @@ export default function RoomScreen({
         )}
       </div>
 
-      {peerError && <div className="err" style={{ flexShrink: 0 }}>{peerError}</div>}
+      {peerError && (
+        <div className={connected ? "warn" : "err"} style={{ flexShrink: 0, marginTop: "0.5rem" }}>
+          {connected ? `⚠️ Signalling: ${peerError}` : peerError}
+        </div>
+      )}
     </div>
   );
 
