@@ -356,9 +356,31 @@ export function usePeer({ onTransferComplete } = {}) {
     if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
     if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
     Object.values(sendStates.current).forEach(s => { s.aborted = true; Object.values(s.ackTimers).forEach(clearTimeout); });
-    peerRef.current?.destroy(); setPeer(null); setConnected(false); setScreen("home");
-    window.history.replaceState({}, "", window.location.pathname);
+    
+    // Clear refs
+    sendStates.current = {};
+    speedTrackers.current = {};
+    receiveBuffers.current = {};
+    activeFileId.current = null;
+    fileQueueRef.current = [];
+    dataQueue.current = [];
+    reconnectCount.current = 0;
     lastReconnectMsgRef.current = "";
+
+    // Clear state
+    peerRef.current?.destroy(); 
+    setPeer(null); 
+    setConnected(false); 
+    setMessages([]);
+    setTransfers([]);
+    setFileQueue([]);
+    setRoomCode("");
+    setShareUrl("");
+    setPeerError("");
+    setReconnecting(false);
+    setScreen("home");
+
+    window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
   const pauseTransfer = useCallback((id) => { const s = sendStates.current[id]; if (s) s.paused = true; }, []);
