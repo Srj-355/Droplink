@@ -109,7 +109,7 @@ function EssenceField() {
     let h = (canvas.height = window.innerHeight);
 
     const isMobile = w < 768;
-    const particleCount = isMobile ? 40 : 100;
+    const particleCount = isMobile ? 65 : 155;
     const particles = [];
     const mouse = { x: -1000, y: -1000 };
 
