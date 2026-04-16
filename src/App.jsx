@@ -82,7 +82,7 @@ export default function App() {
     transfers, setTransfers,
     fileQueue,
     peerError, setPeerError,
-    libsReady,
+    libsReady, isJoining,
     createRoom, joinRoom,
     queueFile, sendChat, leaveRoom,
     pauseTransfer, resumeTransfer,
@@ -138,6 +138,7 @@ export default function App() {
             onBack={leaveRoom}
             peerError={peerError}
             libsReady={libsReady}
+            isJoining={isJoining}
           />
         )}
 

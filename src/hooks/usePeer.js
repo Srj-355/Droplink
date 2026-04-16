@@ -100,6 +100,7 @@ export function usePeer({ onTransferComplete } = {}) {
   const [peerError, setPeerError] = useState("");
   const [libsReady, setLibsReady] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
 
   const connRef = useRef(null);
   const dcRef = useRef(null);
@@ -359,17 +360,20 @@ export function usePeer({ onTransferComplete } = {}) {
 
   const joinRoom = useCallback(() => {
     const code = joinCode.trim().toUpperCase(); if (!code) return;
+    if (isJoining || connectedRef.current) return;
+    setIsJoining(true);
     intentionalLeave.current = false; isHost.current = false; targetRoomCode.current = code;
     const p = new Peer(undefined, buildPeerOptions());
     p.on("open", () => { setupConn.current(p.connect(code, { reliable: true, serialization: "raw" })); setPeer(p); });
     p.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); p.reconnect(); });
     p.on("error", err => {
+      setIsJoining(false);
       if (!connectedRef.current) {
         setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`);
         leaveRoomRef.current?.();
       }
     });
-  }, [joinCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [joinCode, isJoining]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const queueFile = useCallback((file) => {
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
@@ -400,6 +404,7 @@ export function usePeer({ onTransferComplete } = {}) {
     setMessages([]);
     setTransfers([]);
     setFileQueue([]);
+    setIsJoining(false); 
     setRoomCode("");
     setShareUrl("");
     setPeerError("");
@@ -524,6 +529,7 @@ export function usePeer({ onTransferComplete } = {}) {
 
   setupConn.current = (connection) => {
     connection.on("open", () => {
+      setIsJoining(false);
       connRef.current = connection; connectedRef.current = true; setConnected(true); setScreen("room");
       reconnectCount.current = 0; setReconnecting(false); lastReconnectMsgRef.current = "";
       if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
@@ -548,7 +554,7 @@ export function usePeer({ onTransferComplete } = {}) {
   };
 
   return {
-    screen, setScreen, roomCode, joinCode, connected, messages, transfers, fileQueue, shareUrl, peerError, libsReady, reconnecting,
+    screen, setScreen, roomCode, joinCode, connected, messages, transfers, fileQueue, shareUrl, peerError, libsReady, reconnecting, isJoining,
     setJoinCode, createRoom, joinRoom, queueFile, leaveRoom, setTransfers, setPeerError,
     sendChat: (t) => {
       const c = connRef.current; if (!c || !t.trim()) return false;
