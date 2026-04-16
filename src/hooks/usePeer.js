@@ -23,21 +23,21 @@ function buildPeerOptions() {
     },
   };
   if (USE_CUSTOM_PEER_SERVER) {
-    opts.host   = PEER_SERVER.host;
-    opts.port   = PEER_SERVER.port;
-    opts.path   = PEER_SERVER.path;
+    opts.host = PEER_SERVER.host;
+    opts.port = PEER_SERVER.port;
+    opts.path = PEER_SERVER.path;
     opts.secure = PEER_SERVER.secure;
-    opts.key    = PEER_SERVER.key;
+    opts.key = PEER_SERVER.key;
   }
   return opts;
 }
 
-const STREAM_SUPPORTED  = typeof window !== "undefined" && "showSaveFilePicker" in window;
-const STREAM_MIN_BYTES  = 1 * 1024 * 1024;
-const HIGH_WATERMARK  = 8 * 1024 * 1024;
-const LOW_WATERMARK   = 2 * 1024 * 1024;
-const SCTP_WARMUP_MS  = 50;
-const TYPE_JSON  = 0x01;
+const STREAM_SUPPORTED = typeof window !== "undefined" && "showSaveFilePicker" in window;
+const STREAM_MIN_BYTES = 1 * 1024 * 1024;
+const HIGH_WATERMARK = 8 * 1024 * 1024;
+const LOW_WATERMARK = 2 * 1024 * 1024;
+const SCTP_WARMUP_MS = 50;
+const TYPE_JSON = 0x01;
 const TYPE_CHUNK = 0x02;
 
 function encodeJSON(obj) {
@@ -50,11 +50,11 @@ function encodeJSON(obj) {
 }
 
 function encodeChunk(fileId, index, chunkBuffer, compressed = false) {
-  const id  = new TextEncoder().encode(fileId);
+  const id = new TextEncoder().encode(fileId);
   const hdr = 1 + 2 + id.byteLength + 4 + 1;
   const buf = new ArrayBuffer(hdr + chunkBuffer.byteLength);
-  const dv  = new DataView(buf);
-  const u8  = new Uint8Array(buf);
+  const dv = new DataView(buf);
+  const u8 = new Uint8Array(buf);
   dv.setUint8(0, TYPE_CHUNK);
   dv.setUint16(1, id.byteLength, false);
   u8.set(id, 3);
@@ -66,21 +66,21 @@ function encodeChunk(fileId, index, chunkBuffer, compressed = false) {
 }
 
 function decodeFrame(raw) {
-  const buf  = raw instanceof ArrayBuffer ? raw : raw.buffer;
-  const dv   = new DataView(buf);
-  const u8   = new Uint8Array(buf);
+  const buf = raw instanceof ArrayBuffer ? raw : raw.buffer;
+  const dv = new DataView(buf);
+  const u8 = new Uint8Array(buf);
   const kind = dv.getUint8(0);
   if (kind === TYPE_JSON) {
     try { return { type: "json", data: JSON.parse(new TextDecoder().decode(u8.subarray(1))) }; }
     catch { return null; }
   }
   if (kind === TYPE_CHUNK) {
-    const idLen  = dv.getUint16(1, false);
-    const idEnd  = 3 + idLen;
+    const idLen = dv.getUint16(1, false);
+    const idEnd = 3 + idLen;
     const fileId = new TextDecoder().decode(u8.subarray(3, idEnd));
-    const index  = dv.getUint32(idEnd, false);
+    const index = dv.getUint32(idEnd, false);
     const compressed = dv.getUint8(idEnd + 4) === 1;
-    const chunk  = buf.slice(idEnd + 5);
+    const chunk = buf.slice(idEnd + 5);
     return { type: "chunk", fileId, index, compressed, chunk };
   }
   return null;
@@ -88,51 +88,51 @@ function decodeFrame(raw) {
 
 export function usePeer({ onTransferComplete } = {}) {
   // ── 1. Hooks (Consolidated) ─────────────────────────────────────────────────
-  const [screen,       setScreen]       = useState("home");
-  const [roomCode,     setRoomCode]     = useState("");
-  const [joinCode,     setJoinCode]     = useState("");
-  const [peer,         setPeer]         = useState(null);
-  const [connected,    setConnected]    = useState(false);
-  const [messages,     setMessages]     = useState([]);
-  const [transfers,    setTransfers]    = useState([]);
-  const [fileQueue,    setFileQueue]    = useState([]);
-  const [shareUrl,     setShareUrl]     = useState("");
-  const [peerError,    setPeerError]    = useState("");
-  const [libsReady,    setLibsReady]    = useState(false);
+  const [screen, setScreen] = useState("home");
+  const [roomCode, setRoomCode] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [peer, setPeer] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [transfers, setTransfers] = useState([]);
+  const [fileQueue, setFileQueue] = useState([]);
+  const [shareUrl, setShareUrl] = useState("");
+  const [peerError, setPeerError] = useState("");
+  const [libsReady, setLibsReady] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
 
-  const connRef         = useRef(null);
-  const dcRef           = useRef(null);
-  const connectedRef    = useRef(false);
-  const peerRef         = useRef(null);
-  const sendStates      = useRef({});
-  const speedTrackers   = useRef({});
-  const receiveBuffers  = useRef({});
-  const activeFileId    = useRef(null);
-  const fileQueueRef    = useRef([]);
-  const reconnectCount  = useRef(0);
+  const connRef = useRef(null);
+  const dcRef = useRef(null);
+  const connectedRef = useRef(false);
+  const peerRef = useRef(null);
+  const sendStates = useRef({});
+  const speedTrackers = useRef({});
+  const receiveBuffers = useRef({});
+  const activeFileId = useRef(null);
+  const fileQueueRef = useRef([]);
+  const reconnectCount = useRef(0);
   const intentionalLeave = useRef(false);
-  const targetRoomCode  = useRef("");
-  const isHost          = useRef(false);
-  const leaveRoomRef    = useRef(null);
+  const targetRoomCode = useRef("");
+  const isHost = useRef(false);
+  const leaveRoomRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const backoffTimerRef = useRef(null);
   const lastReconnectMsgRef = useRef("");
   const peerCompression = useRef(null);
-  const _advanceQueueRef    = useRef(null);
-  const handleDataRef       = useRef(null);
-  const dataQueue           = useRef([]);
-  const processingData      = useRef(false);
+  const _advanceQueueRef = useRef(null);
+  const handleDataRef = useRef(null);
+  const dataQueue = useRef([]);
+  const processingData = useRef(false);
   const lastSignallingAlert = useRef(0);
-  const setupConn           = useRef(null);
+  const setupConn = useRef(null);
 
   const addMessage = useCallback((msg) =>
     setMessages((prev) => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }])
-  , []);
+    , []);
 
   const updateTransfer = useCallback((fileId, patch) =>
     setTransfers((prev) => prev.map((t) => t.id === fileId ? { ...t, ...patch } : t))
-  , []);
+    , []);
 
   const triggerAutoReturn = useCallback((msg = "❌ Connection lost. Peer no longer available. Returning home…") => {
     setReconnecting(false); addMessage({ type: "system", text: msg });
@@ -155,7 +155,7 @@ export function usePeer({ onTransferComplete } = {}) {
   const _advanceQueue = useCallback(() => {
     if (activeFileId.current || !connectedRef.current) return;
     const queue = fileQueueRef.current;
-    const next  = queue.find((q) => q.status === "queued");
+    const next = queue.find((q) => q.status === "queued");
     if (!next) return;
     setFileQueue((prev) => prev.map((q) => q.id === next.id ? { ...q, status: "sending" } : q));
     activeFileId.current = next.id;
@@ -170,6 +170,17 @@ export function usePeer({ onTransferComplete } = {}) {
       const tracker = speedTrackers.current[fileId];
       const duration = tracker ? (Date.now() - tracker.startTime) / 1000 : null;
       const avgSpeed = duration && state.fileSize ? state.fileSize / duration : null;
+      
+      const ratio = state.rawBytes > 0 ? (state.compBytes / state.rawBytes) : 1;
+      const savingsPercent = ((1 - ratio) * 100).toFixed(1);
+      const savingsBytes = state.rawBytes - state.compBytes;
+      const timeSaved = avgSpeed && avgSpeed > 0 ? (savingsBytes / avgSpeed).toFixed(2) : "0.00";
+
+      console.log(`[Transfer] ✅ Finalized "${state.fileName}"`);
+      console.log(`  └─ Size: ${formatBytes(state.rawBytes)} (Raw) → ${formatBytes(state.compBytes)} (On-wire)`);
+      console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
+      console.log(`  └─ Estimated compression time save: ${timeSaved}s`);
+      
       onTransferComplete?.({ id: fileId, name: state.fileName, size: state.fileSize, direction: "out", status: "done", duration, avgSpeed, compressed: state.compressionActive });
     } catch (err) { console.error("Error in _finalizeSender:", err); }
     finally { delete sendStates.current[fileId]; delete speedTrackers.current[fileId]; activeFileId.current = null; _advanceQueueRef.current?.(); }
@@ -187,7 +198,7 @@ export function usePeer({ onTransferComplete } = {}) {
 
   const _attemptReconnect = useCallback(() => {
     if (intentionalLeave.current || connectedRef.current) return;
-    
+
     // Safety exit if we've reached max attempts
     const attempt = reconnectCount.current + 1;
     if (attempt > RECONNECT_MAX) {
@@ -203,11 +214,11 @@ export function usePeer({ onTransferComplete } = {}) {
         }
       }, RECONNECT_TIMEOUT_MS);
     }
-    
+
     reconnectCount.current = attempt;
     setReconnecting(true);
     const delay = RECONNECT_BASE_MS * Math.pow(2, attempt - 1);
-    
+
     const logOnce = (text) => {
       if (lastReconnectMsgRef.current === text) return;
       lastReconnectMsgRef.current = text;
@@ -215,11 +226,12 @@ export function usePeer({ onTransferComplete } = {}) {
     };
 
     logOnce(`🔄 Reconnecting… (Attempt ${attempt}/${RECONNECT_MAX})`);
+    console.log(`[Signal] Reconnect attempt ${attempt}/${RECONNECT_MAX} with ${delay}ms delay`);
 
     if (backoffTimerRef.current) clearTimeout(backoffTimerRef.current);
     backoffTimerRef.current = setTimeout(() => {
       if (intentionalLeave.current || connectedRef.current) return;
-      
+
       let p = peerRef.current;
       const code = targetRoomCode.current;
       if (!code) return;
@@ -232,20 +244,20 @@ export function usePeer({ onTransferComplete } = {}) {
         setPeer(newPeer);
         newPeer.on("open", id => {
           if (isHost.current) setRoomCode(id);
-          _attemptReconnect(); 
+          _attemptReconnect();
         });
         newPeer.on("disconnected", () => { newPeer.reconnect(); });
         newPeer.on("error", () => _attemptReconnect());
         if (isHost.current) {
-            newPeer.on("connection", conn => {
-                if (connectedRef.current) {
-                    conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); });
-                    return;
-                }
-                setupConn.current(conn);
-            });
+          newPeer.on("connection", conn => {
+            if (connectedRef.current) {
+              conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); });
+              return;
+            }
+            setupConn.current(conn);
+          });
         }
-        return; 
+        return;
       }
 
       // 2. If signaling is disconnected
@@ -265,7 +277,7 @@ export function usePeer({ onTransferComplete } = {}) {
       } else {
         const conn = p.connect(code, { reliable: true, serialization: "raw" });
         setupConn.current(conn);
-        const onErr = (err) => { 
+        const onErr = (err) => {
           if (err.type === "peer-unavailable") {
             if (backoffTimerRef.current) clearTimeout(backoffTimerRef.current);
             backoffTimerRef.current = setTimeout(_attemptReconnect, 2000);
@@ -282,26 +294,38 @@ export function usePeer({ onTransferComplete } = {}) {
     const c = connRef.current; if (!c) return;
     const chunkSize = getChunkSize(file.size); const totalChunks = Math.ceil(file.size / chunkSize);
     const useCompression = COMPRESSION_ENABLED && isCompressionSupported() && peerCompression.current?.includes("deflate-raw") && shouldCompressFile(file);
-    sendStates.current[fileId] = { aborted: false, paused: false, finalized: false, chunkSize, totalChunks, fileName: file.name, fileSize: file.size, ackTimers: {}, retryCounts: {}, ackedChunks: 0, ackedIndexes: new Set(), allDispatched: false, resumeFrom: 0, useCompression, compressionActive: useCompression };
+    console.log(`[Transfer] Initiating: ${file.name} (${formatBytes(file.size)}). Compression: ${useCompression ? "Yes" : "No"}`);
+    sendStates.current[fileId] = { aborted: false, paused: false, finalized: false, chunkSize, totalChunks, fileName: file.name, fileSize: file.size, ackTimers: {}, retryCounts: {}, ackedChunks: 0, ackedIndexes: new Set(), allDispatched: false, resumeFrom: 0, useCompression, compressionActive: useCompression, rawBytes: 0, compBytes: 0 };
     speedTrackers.current[fileId] = { startTime: Date.now(), lastUpdate: Date.now() };
     setTransfers(prev => [...prev, { id: fileId, name: file.name, size: file.size, progress: 0, direction: "out", status: "sending", totalChunks, compressed: useCompression }]);
     c.send(encodeJSON({ type: "file-meta", fileId, name: file.name, size: file.size, totalChunks, chunkSize, compressed: useCompression }));
-    
+
     const sendChunk = async (index, buffer) => {
       const s = sendStates.current[fileId]; if (!s || s.aborted) return;
       let data = buffer;
       if (s.useCompression) {
-        try { const comp = await compressChunk(buffer); if (index === 0 && (comp.byteLength / buffer.byteLength) > 0.9) { s.useCompression = false; s.compressionActive = false; } else data = comp; }
+        try { 
+          const comp = await compressChunk(buffer); 
+          if (index === 0 && (comp.byteLength / buffer.byteLength) > 0.9) { 
+            console.log("[Compression] Threshold not met on first chunk, disabling compression for this file.");
+            s.useCompression = false; 
+            s.compressionActive = false; 
+          } else data = comp; 
+        }
         catch { s.useCompression = false; }
       }
+      s.rawBytes += buffer.byteLength;
+      s.compBytes += data.byteLength;
       const frame = encodeChunk(fileId, index, data, s.compressionActive);
       s.ackTimers[index] = setTimeout(() => {
         const st = sendStates.current[fileId];
         if (st && !st.aborted && !st.ackedIndexes.has(index)) {
+          console.warn(`[Transfer] No ACK for chunk ${index}. Retry ${st.retryCounts[index] || 0}/${CHUNK_RETRY_LIMIT}`);
           if ((st.retryCounts[index] || 0) < CHUNK_RETRY_LIMIT) { st.retryCounts[index] = (st.retryCounts[index] || 0) + 1; sendChunk(index, buffer); }
           else { updateTransfer(fileId, { status: "error" }); }
         }
       }, CHUNK_ACK_TIMEOUT);
+      console.log(`[Transfer] Sending chunk ${index}/${totalChunks - 1} (${data.byteLength} bytes)`);
       connRef.current?.send(frame);
     };
 
@@ -318,7 +342,9 @@ export function usePeer({ onTransferComplete } = {}) {
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((chunkIndex / totalChunks) * 100)), speed, eta });
         if (chunkIndex % 4 === 0) await new Promise(r => setTimeout(r, 0));
       }
-      st.allDispatched = true; _checkCompletion(fileId);
+      st.allDispatched = true; 
+      console.log(`[Transfer] All chunks for "${st.fileName}" dispatched. (Acked: ${st.ackedChunks}/${st.totalChunks})`);
+      _checkCompletion(fileId);
     })();
   }, [updateTransfer, tickSpeed, _checkCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -337,11 +363,11 @@ export function usePeer({ onTransferComplete } = {}) {
     const p = new Peer(undefined, buildPeerOptions());
     p.on("open", () => { setupConn.current(p.connect(code, { reliable: true, serialization: "raw" })); setPeer(p); });
     p.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); p.reconnect(); });
-    p.on("error", err => { 
-      if (!connectedRef.current) { 
-        setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`); 
-        leaveRoomRef.current?.(); 
-      } 
+    p.on("error", err => {
+      if (!connectedRef.current) {
+        setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`);
+        leaveRoomRef.current?.();
+      }
     });
   }, [joinCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -356,7 +382,7 @@ export function usePeer({ onTransferComplete } = {}) {
     if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
     if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
     Object.values(sendStates.current).forEach(s => { s.aborted = true; Object.values(s.ackTimers).forEach(clearTimeout); });
-    
+
     // Clear refs
     sendStates.current = {};
     speedTrackers.current = {};
@@ -368,9 +394,9 @@ export function usePeer({ onTransferComplete } = {}) {
     lastReconnectMsgRef.current = "";
 
     // Clear state
-    peerRef.current?.destroy(); 
-    setPeer(null); 
-    setConnected(false); 
+    peerRef.current?.destroy();
+    setPeer(null);
+    setConnected(false);
     setMessages([]);
     setTransfers([]);
     setFileQueue([]);
@@ -385,8 +411,8 @@ export function usePeer({ onTransferComplete } = {}) {
 
   const pauseTransfer = useCallback((id) => { const s = sendStates.current[id]; if (s) s.paused = true; }, []);
   const resumeTransfer = useCallback((id) => { const s = sendStates.current[id]; if (s) s.paused = false; }, []);
-  const cancelTransfer = useCallback((id) => { 
-    const s = sendStates.current[id]; if (s) { s.aborted = true; } 
+  const cancelTransfer = useCallback((id) => {
+    const s = sendStates.current[id]; if (s) { s.aborted = true; }
     updateTransfer(id, { status: "cancelled" });
     connRef.current?.send(encodeJSON({ type: "cancel-transfer", fileId: id }));
   }, [updateTransfer]);
@@ -395,7 +421,7 @@ export function usePeer({ onTransferComplete } = {}) {
   useEffect(() => { fileQueueRef.current = fileQueue; }, [fileQueue]);
   useEffect(() => { peerRef.current = peer; }, [peer]);
   useEffect(() => { setLibsReady(true); }, []);
-  useEffect(() => { 
+  useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("room");
     if (p) { setJoinCode(p.toUpperCase()); setScreen("join"); }
   }, []);
@@ -431,6 +457,16 @@ export function usePeer({ onTransferComplete } = {}) {
     a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     updateTransfer(fileId, { progress: 100, status: "done" });
     addMessage({ type: "system", text: `✅ Received "${buf.meta.name}"` });
+    
+    const ratio = buf.rawBytes > 0 ? (buf.compBytes / buf.rawBytes) : 1;
+    const savingsPercent = ((1 - ratio) * 100).toFixed(1);
+    const savingsBytes = buf.rawBytes - buf.compBytes;
+
+    console.log(`[Transfer] ✅ Received "${buf.meta.name}"`);
+    console.log(`  └─ Size: ${formatBytes(buf.rawBytes)} (Decompressed) ← ${formatBytes(buf.compBytes)} (On-wire)`);
+    if (savingsPercent > 0) {
+      console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
+    }
     delete receiveBuffers.current[fileId];
   };
 
@@ -445,9 +481,9 @@ export function usePeer({ onTransferComplete } = {}) {
         const { fileId, name, size, totalChunks, chunkSize } = data;
         const useStream = STREAM_SUPPORTED && size >= STREAM_MIN_BYTES;
         if (useStream) {
-          try { const h = await window.showSaveFilePicker({ suggestedName: name }); const w = await h.createWritable(); receiveBuffers.current[fileId] = { mode: "stream", writable: w, pendingChunks: new Map(), nextExpected: 0, received: 0, meta: data }; }
-          catch { receiveBuffers.current[fileId] = { mode: "buffer", chunks: new Array(totalChunks), received: 0, meta: data }; }
-        } else receiveBuffers.current[fileId] = { mode: "buffer", chunks: new Array(totalChunks), received: 0, meta: data };
+          try { const h = await window.showSaveFilePicker({ suggestedName: name }); const w = await h.createWritable(); receiveBuffers.current[fileId] = { mode: "stream", writable: w, pendingChunks: new Map(), nextExpected: 0, received: 0, meta: data, rawBytes: 0, compBytes: 0 }; }
+          catch { receiveBuffers.current[fileId] = { mode: "buffer", chunks: new Array(totalChunks), received: 0, meta: data, rawBytes: 0, compBytes: 0 }; }
+        } else receiveBuffers.current[fileId] = { mode: "buffer", chunks: new Array(totalChunks), received: 0, meta: data, rawBytes: 0, compBytes: 0 };
         setTransfers(prev => [...prev, { id: fileId, name, size, progress: 0, direction: "in", status: "receiving", totalChunks }]);
       }
       if (data.type === "chunk-ack") {
@@ -468,8 +504,11 @@ export function usePeer({ onTransferComplete } = {}) {
     }
     if (frame.type === "chunk") {
       let { fileId, index, chunk, compressed } = frame; const buf = receiveBuffers.current[fileId]; if (!buf) return;
+      console.log(`[Transfer] Received chunk ${index} for ${fileId} (${chunk.byteLength}B, Compressed: ${compressed})`);
       connRef.current?.send(encodeJSON({ type: "chunk-ack", fileId, index }));
+      buf.compBytes += chunk.byteLength;
       if (compressed) chunk = await decompressChunk(chunk);
+      buf.rawBytes += chunk.byteLength;
       if (buf.mode === "stream") {
         buf.pendingChunks.set(index, chunk); buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
@@ -489,22 +528,22 @@ export function usePeer({ onTransferComplete } = {}) {
       reconnectCount.current = 0; setReconnecting(false); lastReconnectMsgRef.current = "";
       if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
       if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
-      
+
       if (COMPRESSION_ENABLED && isCompressionSupported()) connection.send(encodeJSON({ type: "hello", compression: ["deflate-raw"] }));
       const dc = connection._dc || connection.dataChannel; if (dc) { dc.bufferedAmountLowThreshold = LOW_WATERMARK; dcRef.current = dc; }
       Object.entries(receiveBuffers.current).forEach(([id, b]) => { if (b.received > 0) connection.send(encodeJSON({ type: "resume-request", fileId: id, receivedCount: b.received })); });
       _advanceQueue();
     });
     connection.on("data", raw => { dataQueue.current.push(raw); processQueue(); });
-    connection.on("close", () => { 
+    connection.on("close", () => {
       connRef.current = null; dcRef.current = null; connectedRef.current = false;
       setConnected(false);
       if (!intentionalLeave.current) {
-        setTransfers(prev => prev.map(t => 
+        setTransfers(prev => prev.map(t =>
           (t.status === "sending" || t.status === "receiving") ? { ...t, status: "reconnecting" } : t
         ));
-        _attemptReconnect(); 
-      } else leaveRoom(); 
+        _attemptReconnect();
+      } else leaveRoom();
     });
   };
 
@@ -519,7 +558,7 @@ export function usePeer({ onTransferComplete } = {}) {
     },
     pauseTransfer, resumeTransfer, cancelTransfer,
     cancelReceive: (id) => {
-      const buf = receiveBuffers.current[id]; if (buf?.mode === "stream" && buf.writable) buf.writable.abort().catch(()=>{});
+      const buf = receiveBuffers.current[id]; if (buf?.mode === "stream" && buf.writable) buf.writable.abort().catch(() => { });
       delete receiveBuffers.current[id]; updateTransfer(id, { status: "cancelled" });
       connRef.current?.send(encodeJSON({ type: "cancel-transfer", fileId: id }));
     },

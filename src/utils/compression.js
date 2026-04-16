@@ -53,7 +53,7 @@ export async function compressChunk(buffer) {
 }
 
 /**
- * Decompresses an ArrayBuffer using deflate-raw.
+ * Decompressess an ArrayBuffer using deflate-raw.
  */
 export async function decompressChunk(buffer) {
   const ds = new DecompressionStream('deflate-raw');
