@@ -8,7 +8,6 @@ import HostScreen from "./screens/HostScreen";
 import JoinScreen from "./screens/JoinScreen";
 import RoomScreen from "./screens/RoomScreen";
 import FAQScreen from "./screens/FAQScreen";
-import ContactScreen from "./screens/ContactScreen";
 import { useState } from "react";
 
 const footerStyle = {
@@ -43,11 +42,6 @@ const footerLinkStyle = {
   textTransform: "uppercase",
   letterSpacing: "0.08em",
   padding: "0.2rem 0.5rem",
-};
-
-const footerSeparatorStyle = {
-  fontSize: "0.6rem",
-  color: "rgba(0,0,0,0.1)",
 };
 
 const footerCopyrightStyle = {
@@ -173,17 +167,12 @@ export default function App() {
           <FAQScreen onBack={() => setScreen(prevScreen)} />
         )}
 
-        {screen === "contact" && (
-          <ContactScreen onBack={() => setScreen(prevScreen)} />
-        )}
       </div>
 
-      {!["faq", "contact"].includes(screen) && (
+      {screen !== "faq" && (
         <footer style={footerStyle}>
           <div style={footerContentStyle}>
             <span style={footerLinkStyle} onClick={() => navigateTo("faq")}>FAQ</span>
-            <span style={footerSeparatorStyle}>•</span>
-            <span style={footerLinkStyle} onClick={() => navigateTo("contact")}>Contact Us</span>
           </div>
           <div style={footerCopyrightStyle}>
             © 2026 Droplink • Secure P2P
