@@ -20,11 +20,13 @@ export default function HomeScreen({ onHost, onJoin, onLogoClick, peerError, lib
             icon={<SendIcon />} label="Send files"
             desc="Start a transfer and share your code"
             accent="#0ea5e9" onClick={onHost}
+            direction="up"
           />
           <ActionCard
             icon={<ReceiveIcon />} label="Receive files"
             desc="Enter a code to connect and download"
             accent="#8b5cf6" onClick={onJoin}
+            direction="down"
           />
         </div>
 
@@ -47,27 +49,39 @@ export default function HomeScreen({ onHost, onJoin, onLogoClick, peerError, lib
   );
 }
 
-function ActionCard({ icon, label, desc, accent, onClick }) {
+function ActionCard({ icon, label, desc, accent, onClick, direction }) {
+  const clickedRef = useRef(false);
+
+  const handleClick = (e) => {
+    if (clickedRef.current) return;
+    clickedRef.current = true;
+    onClick(e);
+    // Cool-down of 2 seconds to prevent rapid double-triggering
+    setTimeout(() => {
+      clickedRef.current = false;
+    }, 3000);
+  };
+
   return (
     <div
-      className="glass"
-      style={s.card}
-      onClick={onClick}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-4px)";
-        e.currentTarget.style.boxShadow = `0 16px 40px ${accent}25, 0 1px 0 rgba(255,255,255,0.9) inset`;
-        e.currentTarget.style.borderColor = `${accent}60`;
+      className="action-card"
+      style={{
+        "--accent": accent,
+        "--accent-glow": `${accent}25`,
+        "--accent-border": `${accent}60`,
+        "--accent-bg-icon": `${accent}18`,
       }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 8px 32px rgba(100,130,200,0.12), 0 1px 0 rgba(255,255,255,0.9) inset";
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.75)";
-      }}
+      onClick={handleClick}
     >
-      <div style={{ ...s.cardIcon, background: `${accent}18`, color: accent }}>{icon}</div>
-      <div style={s.cardLabel}>{label}</div>
-      <div style={s.cardDesc}>{desc}</div>
-      <div style={{ ...s.cardArrow, color: accent }}>→</div>
+      <div className={`card-blob ${direction}`}>
+        <div className="card-blob-inner" />
+      </div>
+      <div className="card-content">
+        <div className="card-icon-wrap">{icon}</div>
+        <div className="card-label">{label}</div>
+        <div className="card-desc">{desc}</div>
+        <div className="card-arrow">→</div>
+      </div>
     </div>
   );
 }
@@ -253,20 +267,6 @@ const s = {
   },
   sub: { fontSize: "0.8rem", color: "#64748b", letterSpacing: "0.15em", textTransform: "uppercase" },
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem", width: "100%" },
-  card: {
-    borderRadius: 18, padding: "1.6rem 1.3rem",
-    cursor: "pointer", transition: "all 0.22s ease",
-    display: "flex", flexDirection: "column", gap: "0.45rem",
-    userSelect: "none",
-  },
-  cardIcon: {
-    width: 40, height: 40, borderRadius: 10,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "1.3rem", marginBottom: "0.2rem",
-  },
-  cardLabel: { fontSize: "1rem", fontWeight: 700, color: "#0f172a" },
-  cardDesc: { fontSize: "0.72rem", color: "#64748b", lineHeight: 1.6 },
-  cardArrow: { fontSize: "1.1rem", fontWeight: 700, marginTop: "0.3rem" },
   pills: { display: "flex", flexWrap: "wrap", gap: "0.35rem", justifyContent: "center" },
   pill: {
     background: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.75)",
