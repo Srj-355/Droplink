@@ -76,7 +76,9 @@ export function formatETA(sec) {
   return `${Math.floor(sec / 60)}m ${Math.ceil(sec % 60)}s`;
 }
 
+export const ROOM_CODE_LENGTH = 6;
+
 export function generateRoomCode() {
   const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 6 }, () => c[Math.floor(Math.random() * c.length)]).join("");
+  return Array.from({ length: ROOM_CODE_LENGTH }, () => c[Math.floor(Math.random() * c.length)]).join("");
 }
