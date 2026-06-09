@@ -1,9 +1,11 @@
 import Branding from "../components/Branding";
+import EssenceField from "../components/EssenceField";
 import { ROOM_CODE_LENGTH } from "../constants";
 
 export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peerError, libsReady, isJoining }) {
   return (
     <div className="setup">
+      <EssenceField />
       <div className="glass setup-card">
         <div className="setup-head">
           <Branding onGoHome={onBack} />

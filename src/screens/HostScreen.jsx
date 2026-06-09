@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import Branding from "../components/Branding";
+import EssenceField from "../components/EssenceField";
 
 export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
   const canvasRef = useRef(null);
@@ -42,6 +43,7 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
 
   return (
     <div className="setup">
+      <EssenceField />
       <div className="glass setup-card">
         <div className="setup-head">
           <Branding onGoHome={onLeave} />
