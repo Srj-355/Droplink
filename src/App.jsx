@@ -96,13 +96,8 @@ export default function App() {
 
   return (
     <>
-      {/* Animated background */}
-      <div className="bg-wrap">
-        <div className="bg-orb bg-orb-1" />
-        <div className="bg-orb bg-orb-2" />
-        <div className="bg-orb bg-orb-3" />
-        <div className="bg-orb bg-orb-4" />
-      </div>
+      {/* Optimized background - CSS gradients only, no orb divs */}
+      <div className="bg-wrap" />
 
       <div className="layer" style={{ paddingBottom: "3.5rem" }}>
         {screen === "home" && (

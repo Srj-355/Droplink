@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 
 *,
 *::before,
@@ -19,13 +19,9 @@
   --glass-dark: rgba(15, 23, 42, 0.06);
 
   --accent: #0ea5e9;
-  /* sky-500  */
   --accent-h: #0284c7;
-  /* sky-600  */
   --accent2: #8b5cf6;
-  /* violet-500 */
   --accent3: #06b6d4;
-  /* cyan-500 */
   --green: #10b981;
   --amber: #f59e0b;
   --rose: #f43f5e;
@@ -43,9 +39,32 @@
   --r-lg: 22px;
   --r-xl: 28px;
 
-  /* ── Blur ── */
-  --blur: blur(20px);
-  --blur-sm: blur(12px);
+  /* ── Blur (reduced for performance) ── */
+  --blur: blur(12px);
+  --blur-sm: blur(8px);
+
+  /* ── Action card accent tokens ── */
+  --accent-glow: rgba(14, 165, 233, 0.25);
+  --accent-border: rgba(14, 165, 233, 0.4);
+  --accent-bg-icon: rgba(14, 165, 233, 0.1);
+
+  /* Animation control */
+  --animation-speed: 1;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --animation-speed: 0;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 html,
@@ -55,90 +74,36 @@ body {
 
 body {
   background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-mid) 50%, var(--bg-to) 100%);
-  background-attachment: fixed;
+  background-attachment: scroll;
   color: var(--text);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* ── Animated background mesh ──────────────────────────────────────────────── */
+/* Desktop parallax effect - only on larger screens */
+@media (min-width: 721px) {
+  body {
+    background-attachment: fixed;
+  }
+}
+
+/* ── Optimized background mesh (replaced 4 blur divs with CSS gradients) ── */
 .bg-wrap {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-}
-
-.bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  animation: orb-drift 18s ease-in-out infinite alternate;
-}
-
-.bg-orb-1 {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 70%);
-  top: -150px;
-  left: -150px;
-  animation-delay: 0s;
-}
-
-.bg-orb-2 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
-  bottom: -100px;
-  right: -100px;
-  animation-delay: -6s;
-}
-
-.bg-orb-3 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
-  top: 40%;
-  left: 55%;
-  animation-delay: -12s;
-}
-
-.bg-orb-4 {
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-  top: 20%;
-  right: 20%;
-  animation-delay: -4s;
-}
-
-@keyframes orb-drift {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-
-  100% {
-    transform: translate(40px, 30px) scale(1.1);
-  }
-}
-
-@keyframes btn-pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
-  }
-
-  50% {
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.45), 0 0 0 4px rgba(14, 165, 233, 0.1);
-  }
-
-  100% {
-    transform: scale(1);
-    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
-  }
+  background: 
+    radial-gradient(circle at 10% 10%, rgba(14, 165, 233, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 90% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 55%),
+    radial-gradient(circle at 60% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 30% 70%, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
+  background-blend-mode: overlay;
 }
 
 .layer {
@@ -146,13 +111,14 @@ body {
   z-index: 1;
 }
 
-/* ── Glass card ──────────────────────────────────────────────────────────────*/
+/* ── Glass card (with containment) ── */
 .glass {
   background: var(--glass-white);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   box-shadow: 0 8px 32px var(--glass-shadow), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  contain: layout style paint;
 }
 
 .glass-sm {
@@ -161,9 +127,10 @@ body {
   -webkit-backdrop-filter: var(--blur-sm);
   border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow: 0 4px 16px var(--glass-shadow);
+  contain: layout style paint;
 }
 
-/* ── Buttons ─────────────────────────────────────────────────────────────────*/
+/* ── Buttons ── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -172,13 +139,14 @@ body {
   padding: 0.6rem 1.2rem;
   border-radius: var(--r-sm);
   border: none;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
   white-space: nowrap;
   letter-spacing: 0.01em;
+  contain: layout style;
 }
 
 .btn:disabled {
@@ -197,21 +165,18 @@ body {
   box-shadow: 0 6px 20px rgba(14, 165, 233, 0.45);
 }
 
+.btn-primary:not(:disabled):active {
+  transform: translateY(0);
+}
+
 .btn-connect {
   position: relative;
   overflow: hidden;
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid rgba(15, 23, 42, 0.12) !important;
-  transition:
-    color 0.4s ease,
-    border-color 0.4s ease,
-    box-shadow 0.4s ease,
-    transform 0.2s ease !important;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  transition: color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.18s ease;
   z-index: 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 .btn-connect::before {
@@ -225,7 +190,7 @@ body {
   z-index: -1;
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-connect:not(:disabled):hover::before {
@@ -233,9 +198,9 @@ body {
 }
 
 .btn-connect:not(:disabled):hover {
-  color: #ffffff !important;
-  border-color: transparent !important;
-  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3) !important;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
   transform: translateY(-1.5px);
 }
 
@@ -246,10 +211,12 @@ body {
 .btn-connect .spinner-mini {
   border: 2px solid rgba(15, 23, 42, 0.15);
   border-top-color: #0f172a;
+  transition: border-color 0.25s ease, border-top-color 0.25s ease;
 }
 
-.btn-primary:not(:disabled):active {
-  transform: translateY(0);
+.btn-connect:not(:disabled):hover .spinner-mini {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
 }
 
 .btn-outline {
@@ -265,7 +232,7 @@ body {
 }
 
 .btn-leave {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-leave:hover {
@@ -300,7 +267,7 @@ body {
   color: var(--text-muted);
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.12s ease;
   flex-shrink: 0;
 }
 
@@ -324,11 +291,11 @@ body {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color 0.12s ease;
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -342,18 +309,18 @@ body {
   color: #f43f5e !important;
 }
 
-/* ── Inputs ──────────────────────────────────────────────────────────────────*/
+/* ── Inputs ── */
 .inp {
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: var(--r-sm);
   padding: 0.65rem 1rem;
   color: var(--text);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.88rem;
   width: 100%;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
   backdrop-filter: var(--blur-sm);
 }
 
@@ -366,7 +333,7 @@ body {
   color: var(--text-dim);
 }
 
-/* ── Error / empty ───────────────────────────────────────────────────────────*/
+/* ── Error / empty ── */
 .err {
   background: rgba(244, 63, 94, 0.08);
   border: 1px solid rgba(244, 63, 94, 0.22);
@@ -384,15 +351,12 @@ body {
   padding: 2rem 0;
 }
 
-/* ── Pulse dot ───────────────────────────────────────────────────────────────*/
+/* ── Pulse dot ── */
 @keyframes pulse-dot {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
     transform: scale(1);
   }
-
   50% {
     opacity: 0.4;
     transform: scale(0.65);
@@ -419,7 +383,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Setup screens ───────────────────────────────────────────────────────────*/
+/* ── Setup screens ── */
 .setup {
   min-height: 100vh;
   display: flex;
@@ -437,18 +401,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  animation: card-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: card-enter 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1) both;
+  contain: layout style paint;
 }
 
 @keyframes card-enter {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.97);
+    transform: translateY(20px);
   }
-
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -464,7 +428,7 @@ body {
   color: var(--text);
 }
 
-/* ── Room layout ─────────────────────────────────────────────────────────────*/
+/* ── Room layout ── */
 .room-wrap {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -492,7 +456,7 @@ body {
 
 .room-logo {
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.01em;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
@@ -503,7 +467,7 @@ body {
 .room-code-badge {
   font-size: 0.68rem;
   color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 20px;
@@ -550,8 +514,10 @@ body {
   overflow: hidden;
   height: 100%;
   min-height: 0;
+  contain: layout style;
 }
 
+/* Mobile performance fixes: disable backdrop-filter on small screens */
 @media(max-width: 720px) {
   .room-wrap {
     padding: 0 0.5rem;
@@ -583,7 +549,7 @@ body {
     min-width: 0;
   }
 
-  .mobile-only>div {
+  .mobile-only > div {
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -592,10 +558,26 @@ body {
   .mobile-tabs {
     display: flex !important;
   }
+
+  /* Disable backdrop-filter on mobile for all elements */
+  .glass,
+  .glass-sm,
+  .action-card,
+  .inp,
+  .shimmer-input-wrap {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  /* Use content-visibility for off-screen sections on mobile */
+  .room-body > div:not(:first-child) {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
+  }
 }
 
-
-/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+/* ── Tabs ── */
 .tab-bar {
   display: flex;
   gap: 0.25rem;
@@ -611,11 +593,11 @@ body {
   padding: 0.38rem 0.75rem;
   border-radius: var(--r-xs);
   border: none;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.74rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.12s ease;
   color: var(--text-muted);
   background: transparent;
 }
@@ -626,7 +608,7 @@ body {
   box-shadow: 0 2px 6px var(--glass-shadow);
 }
 
-/* ── Reconnecting banner ─────────────────────────────────────────────────────*/
+/* ── Reconnecting banner ── */
 .reconnect-banner {
   display: flex;
   align-items: center;
@@ -657,14 +639,13 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Progress bar shimmer ────────────────────────────────────────────────────*/
+/* ── Progress bar shimmer (optimized) ── */
 @keyframes shimmer {
   0% {
-    background-position: -200% center;
+    background-position: 200% 0;
   }
-
   100% {
-    background-position: 200% center;
+    background-position: -200% 0;
   }
 }
 
@@ -703,26 +684,28 @@ body {
   opacity: 0.5;
 }
 
-/* ── Scrollbars ──────────────────────────────────────────────────────────────*/
-* {
+/* ── Scrollbars ── */
+.room-body,
+.setup-card,
+[data-scrollable] {
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 116, 139, 0.45) rgba(100, 116, 139, 0.05);
 }
 
-::-webkit-scrollbar {
+[data-scrollable]::-webkit-scrollbar {
   width: 4px;
 }
 
-::-webkit-scrollbar-track {
+[data-scrollable]::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+[data-scrollable]::-webkit-scrollbar-thumb {
   background: rgba(100, 116, 139, 0.4);
   border-radius: 4px;
 }
 
-
+/* ── Layout visibility helpers ── */
 .desktop-only {
   height: 100%;
   min-height: 0;
@@ -740,33 +723,23 @@ body {
   flex-shrink: 0;
 }
 
-.mobile-only.hidden {
-  display: none !important;
-}
-
-/* mob-hidden is the class applied by RoomScreen for the inactive mobile panel */
+.mobile-only.hidden,
 .mobile-only.mob-hidden {
   display: none !important;
 }
 
-/* Simplified mobile behavior consolidated in previous media query block */
-
-/* ── Essence animations ──────────────────────────────────────────────────────*/
-
+/* ── Essence animations ── */
 @keyframes essence-up {
   0% {
     transform: translateY(8px) scale(0.5);
     opacity: 0;
   }
-
   20% {
     opacity: 0.8;
   }
-
   80% {
     opacity: 0.8;
   }
-
   100% {
     transform: translateY(-12px) scale(1.2);
     opacity: 0;
@@ -778,15 +751,12 @@ body {
     transform: translateY(-12px) scale(1.2);
     opacity: 0;
   }
-
   20% {
     opacity: 0.8;
   }
-
   80% {
     opacity: 0.8;
   }
-
   100% {
     transform: translateY(8px) scale(0.5);
     opacity: 0;
@@ -794,12 +764,9 @@ body {
 }
 
 @keyframes float {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
-
   50% {
     transform: translateY(-3px);
   }
@@ -810,11 +777,7 @@ body {
   filter: blur(1px);
 }
 
-
-.bg-orb {
-  animation: none !important;
-}
-
+/* ── Spinner ── */
 .spinner-mini {
   width: 14px;
   height: 14px;
@@ -825,8 +788,7 @@ body {
   display: inline-block;
 }
 
-/* ── Premium Action Card Blob Hover Animations ────────────────────────────────── */
-
+/* ── Action cards for home screen ── */
 .action-card {
   position: relative;
   overflow: hidden;
@@ -842,19 +804,13 @@ body {
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   box-shadow: 0 8px 32px var(--glass-shadow), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
-  transition:
-    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1),
+              box-shadow 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1),
+              border-color 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   transform: translate3d(0, 0, 0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-
-  /* Apply antialiasing to everything inside */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  contain: layout style paint;
 }
 
 .action-card:hover {
@@ -863,7 +819,6 @@ body {
   border-color: var(--accent-border);
 }
 
-/* Card content wrapper (forces content above the blob) */
 .card-content {
   position: relative;
   z-index: 2;
@@ -873,7 +828,6 @@ body {
   height: 100%;
 }
 
-/* Card icon container */
 .card-icon-wrap {
   width: 40px;
   height: 40px;
@@ -885,9 +839,8 @@ body {
   margin-bottom: 0.2rem;
   background: var(--accent-bg-icon);
   color: var(--accent);
-  transition:
-    background 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1),
+              color 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
 .action-card:hover .card-icon-wrap {
@@ -895,39 +848,35 @@ body {
   color: #ffffff;
 }
 
-/* Card Title / Label */
 .card-label {
   font-size: 1rem;
   font-weight: 700;
   color: #0f172a;
-  transition: color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
 .action-card:hover .card-label {
   color: #ffffff;
 }
 
-/* Card Description */
 .card-desc {
   font-size: 0.72rem;
   color: #64748b;
   line-height: 1.6;
-  transition: color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
 .action-card:hover .card-desc {
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* Card Arrow Link indicator */
 .card-arrow {
   font-size: 1.1rem;
   font-weight: 700;
   margin-top: 0.3rem;
   color: var(--accent);
-  transition:
-    color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1),
+              transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   display: inline-block;
   align-self: flex-start;
 }
@@ -937,7 +886,6 @@ body {
   transform: translate3d(5px, 0, 0);
 }
 
-/* Outer blob container controls scaling and vertical flow */
 .card-blob {
   position: absolute;
   width: 380px;
@@ -945,11 +893,13 @@ body {
   background: var(--accent);
   pointer-events: none;
   z-index: 1;
-  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+.action-card:hover .card-blob {
   will-change: transform;
 }
 
-/* FLOW: Bottom-to-Top (Send Files) */
 .card-blob.up {
   left: 50%;
   bottom: 0;
@@ -961,7 +911,6 @@ body {
   transform: translate3d(-50%, 45%, 0) scale(1.95);
 }
 
-/* FLOW: Top-to-Bottom (Receive Files) */
 .card-blob.down {
   left: 50%;
   top: 0;
@@ -973,97 +922,25 @@ body {
   transform: translate3d(-50%, -45%, 0) scale(1.95);
 }
 
-/* Inner blob provides continuous fluid-like morph and spin */
 .card-blob-inner {
   width: 100%;
   height: 100%;
   background: inherit;
   border-radius: 43% 57% 65% 35% / 40% 45% 55% 60%;
   animation: blob-spin 14s infinite linear;
+  will-change: transform;
+  contain: paint;
 }
 
+/* GPU-accelerated blob spin - only transform animated */
 @keyframes blob-spin {
   0% {
-    transform: rotate(0deg);
-    border-radius: 43% 57% 65% 35% / 40% 45% 55% 60%;
+    transform: rotate(0deg) scale(1);
   }
-
   50% {
-    border-radius: 55% 45% 35% 65% / 60% 55% 45% 40%;
+    transform: rotate(180deg) scale(1.05);
   }
-
   100% {
-    transform: rotate(360deg);
-    border-radius: 43% 57% 65% 35% / 40% 45% 55% 60%;
-  }
-}
-
-/* ── Shimmering Light Loop Outline Input Wrapper ────────────────────────────── */
-
-.shimmer-input-wrap {
-  position: relative;
-  border-radius: var(--r-sm);
-  padding: 1.5px;
-  /* Creates the border thickness */
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: var(--blur-sm);
-  -webkit-backdrop-filter: var(--blur-sm);
-  overflow: hidden;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-/* Conic gradient sweeps around the wrapper edge */
-.shimmer-input-wrap::before {
-  content: "";
-  position: absolute;
-  top: -150%;
-  left: -150%;
-  width: 400%;
-  height: 400%;
-  background: conic-gradient(transparent,
-      transparent 20%,
-      var(--accent) 25%,
-      var(--accent3) 30%,
-      var(--accent2) 35%,
-      transparent 40%,
-      transparent);
-  animation: shimmer-rotate 4s linear infinite;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Pause the animation and hide beam when input is disabled */
-.shimmer-input-wrap:has(input:disabled)::before {
-  animation: none;
-  background: transparent;
-}
-
-/* Solid background overlay inside the input to hide the rotating beam behind the input body */
-.shimmer-input-wrap .inp {
-  background: #ffffff !important;
-  border: none !important;
-  box-shadow: none !important;
-  border-radius: calc(var(--r-sm) - 1.5px);
-  margin: 0;
-  width: 100%;
-}
-
-/* Focus glow style */
-.shimmer-input-wrap:focus-within {
-  box-shadow: 0 0 16px rgba(14, 165, 233, 0.25);
-  border-color: rgba(14, 165, 233, 0.4);
-}
-
-@keyframes shimmer-rotate {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
+    transform: rotate(360deg) scale(1);
   }
 }
