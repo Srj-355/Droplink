@@ -86,7 +86,7 @@ export default function RoomScreen({
 
       {peerError && (
         <div className={connected ? "warn" : "err"} style={{ flexShrink: 0, marginTop: "0.5rem" }}>
-          {connected ? `⚠️ Signalling: ${peerError}` : peerError}
+          {connected ? `Signalling: ${peerError}` : peerError}
         </div>
       )}
     </div>
@@ -129,13 +129,13 @@ export default function RoomScreen({
             className={`tab-btn${mobileTab === "files" ? " active" : ""}`}
             onClick={() => setMobileTab("files")}
           >
-            📁 Files
+            Files
           </button>
           <button
             className={`tab-btn${mobileTab === "chat" ? " active" : ""}`}
             onClick={() => setMobileTab("chat")}
           >
-            💬 Chat {chatCount > 0 && `(${chatCount})`}
+            Chat {chatCount > 0 && `(${chatCount})`}
           </button>
         </div>
       </div>

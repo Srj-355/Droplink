@@ -23,7 +23,7 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
               onKeyDown={(e) => e.key === "Enter" && !isJoining && onJoin()}
               maxLength={ROOM_CODE_LENGTH} autoFocus
               disabled={isJoining}
-              style={{ textTransform: "uppercase", letterSpacing: "0.22em", fontSize: "1.4rem", textAlign: "center", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#0ea5e9", opacity: isJoining ? 0.6 : 1 }}
+              style={{ textTransform: "uppercase", letterSpacing: "0.22em", fontSize: "1.4rem", textAlign: "center", fontFamily: "'Geist Mono', monospace", fontWeight: 700, color: "var(--send)", opacity: isJoining ? 0.6 : 1 }}
             />
           </div>
           <button
@@ -47,5 +47,5 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
 }
 
 const s = {
-  lbl: { fontSize: "0.72rem", color: "#64748b", fontWeight: 500 },
+  lbl: { fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 },
 };

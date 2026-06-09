@@ -71,7 +71,7 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
           {!qrReady && (
             <div style={s.qrPlaceholder}>
               <span className="dot-pulse" />
-              <span style={{ fontSize: "0.68rem", color: "#94a3b8" }}>Generating QR…</span>
+              <span style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>Generating QR…</span>
             </div>
           )}
           <span style={s.qrLabel}>Scan to join instantly</span>
@@ -99,29 +99,30 @@ const s = {
   codeBox: {
     borderRadius: 12, padding: "0.9rem 1.1rem",
     display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem",
+    background: "var(--bg)", border: "1px solid var(--border)",
   },
-  codeLabel: { fontSize: "0.62rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 },
+  codeLabel: { fontSize: "0.62rem", color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 },
   codeVal: {
-    fontFamily: "'JetBrains Mono', monospace", fontSize: "1.9rem", fontWeight: 700,
-    letterSpacing: "0.22em", color: "#0ea5e9",
+    fontFamily: "'Geist Mono', monospace", fontSize: "1.9rem", fontWeight: 700,
+    letterSpacing: "0.22em", color: "var(--send)",
   },
   qrWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", position: "relative" },
   qrBox: {
-    background: "rgba(255,255,255,0.9)", borderRadius: 14, padding: 12,
-    boxShadow: "0 4px 20px rgba(14,165,233,0.12)",
+    background: "var(--surface)", borderRadius: 14, padding: 12,
+    border: "1px solid var(--border)",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
   qrPlaceholder: {
     position: "absolute",
     display: "flex", alignItems: "center", gap: "0.5rem",
   },
-  qrLabel: { fontSize: "0.66rem", color: "#94a3b8" },
+  qrLabel: { fontSize: "0.66rem", color: "var(--text-dim)" },
   urlRow: {
     borderRadius: 10, padding: "0.6rem 0.9rem",
     display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer",
-    overflow: "hidden",
+    overflow: "hidden", background: "var(--bg)", border: "1px solid var(--border)",
   },
-  urlText: { flex: 1, fontSize: "0.68rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
-  urlAction: { fontSize: "0.68rem", color: "#0ea5e9", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 600 },
+  urlText: { flex: 1, fontSize: "0.68rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
+  urlAction: { fontSize: "0.68rem", color: "var(--send)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 600 },
   waitRow: { display: "flex", alignItems: "center", gap: "0.6rem" },
 };

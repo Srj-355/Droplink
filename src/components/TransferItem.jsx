@@ -17,11 +17,11 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel 
               isOut ? "bar-shimmer" : "bar-receive";
 
   const statusLabel =
-    isDone ? <span style={{ ...s.badge, ...s.badgeDone }}>✓ Done</span> :
-      isErr ? <span style={{ ...s.badge, ...s.badgeErr }}>✗ Failed</span> :
-        isPaused ? <span style={{ ...s.badge, ...s.badgePaused }}>⏸ Paused</span> :
-          isCancelled ? <span style={{ ...s.badge, ...s.badgeCancelled }}>🚫 Cancelled</span> :
-            isReconnecting ? <span style={{ ...s.badge, ...s.badgeRetry }}>🔄 Reconnecting…</span> :
+    isDone ? <span style={{ ...s.badge, ...s.badgeDone }}>Done</span> :
+      isErr ? <span style={{ ...s.badge, ...s.badgeErr }}>Failed</span> :
+        isPaused ? <span style={{ ...s.badge, ...s.badgePaused }}>Paused</span> :
+          isCancelled ? <span style={{ ...s.badge, ...s.badgeCancelled }}>Cancelled</span> :
+            isReconnecting ? <span style={{ ...s.badge, ...s.badgeRetry }}>Reconnecting…</span> :
               <span style={s.pct}>{t.progress}%</span>;
 
   const canAct = !isDone && !isErr && !isCancelled && !isReconnecting && isOut;
@@ -52,8 +52,8 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel 
             </span>
           )}
           {t.compressed && !isDone && !isErr && !isCancelled && (
-            <span style={{ ...s.badge, color: "#8b5cf6", background: "rgba(139,92,246,0.12)" }}>
-              ⚡ Compressed
+            <span style={{ ...s.badge, color: "var(--text-muted)", background: "var(--bg)" }}>
+              compressed
             </span>
           )}
         </div>
@@ -89,29 +89,29 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel 
 }
 
 const s = {
-  item: { borderRadius: 12, padding: "0.75rem 0.9rem", transition: "box-shadow 0.15s", overflow: "hidden", minWidth: 0, flexShrink: 0 },
-  top: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.45rem", minWidth: 0, overflow: "hidden" },
-  dir: { fontSize: "0.58rem", padding: "0.1rem 0.42rem", borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, fontFamily: "'JetBrains Mono', monospace" },
-  dirOut: { background: "rgba(14,165,233,0.12)", color: "#0ea5e9" },
-  dirIn: { background: "rgba(16,185,129,0.12)", color: "#10b981" },
-  name: { fontSize: "0.78rem", color: "#0f172a", fontWeight: 500, flex: 1, minWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  size: { fontSize: "0.66rem", color: "#64748b", flexShrink: 0 },
-  barBg: { height: 3, background: "rgba(100,116,139,0.1)", borderRadius: 2, overflow: "hidden", marginBottom: "0.4rem" },
+  item: { borderRadius: 10, padding: "0.7rem 0.85rem", overflow: "hidden", minWidth: 0, flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)" },
+  top: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.4rem", minWidth: 0, overflow: "hidden" },
+  dir: { fontSize: "0.58rem", padding: "0.1rem 0.42rem", borderRadius: 4, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, fontFamily: "'Geist Mono', monospace" },
+  dirOut: { background: "var(--send-light)", color: "var(--send)" },
+  dirIn: { background: "var(--receive-light)", color: "var(--receive)" },
+  name: { fontSize: "0.78rem", color: "var(--text)", fontWeight: 500, flex: 1, minWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  size: { fontSize: "0.66rem", color: "var(--text-muted)", flexShrink: 0 },
+  barBg: { height: 3, background: "var(--bg)", borderRadius: 2, overflow: "hidden", marginBottom: "0.4rem" },
   barFill: { height: "100%", borderRadius: 2, transition: "width 0.3s ease" },
   foot: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", minWidth: 0 },
   footL: { display: "flex", alignItems: "center", gap: "0.45rem", flex: 1, minWidth: 0 },
   footR: { display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0 },
-  pct: { fontSize: "0.64rem", color: "#475569", fontFamily: "'JetBrains Mono', monospace" },
-  chunkLbl: { fontSize: "0.58rem", color: "#64748b", fontStyle: "italic" },
-  speed: { fontSize: "0.62rem", color: "#0ea5e9", fontFamily: "'JetBrains Mono', monospace" },
-  eta: { fontSize: "0.62rem", color: "#64748b" },
+  pct: { fontSize: "0.64rem", color: "var(--text-muted)", fontFamily: "'Geist Mono', monospace" },
+  chunkLbl: { fontSize: "0.58rem", color: "var(--text-dim)", fontStyle: "italic" },
+  speed: { fontSize: "0.62rem", color: "var(--send)", fontFamily: "'Geist Mono', monospace" },
+  eta: { fontSize: "0.62rem", color: "var(--text-dim)" },
   badge: { fontSize: "0.62rem", padding: "0.1rem 0.42rem", borderRadius: 4, fontWeight: 600 },
-  badgeDone: { background: "rgba(16,185,129,0.12)", color: "#059669" },
-  badgeErr: { background: "rgba(244,63,94,0.1)", color: "#e11d48" },
-  badgePaused: { background: "rgba(245,158,11,0.12)", color: "#d97706" },
-  badgeCancelled: { background: "rgba(100,116,139,0.1)", color: "#64748b" },
-  badgeRetry: { background: "rgba(14,165,233,0.1)", color: "#0ea5e9" },
+  badgeDone: { background: "#f0f7f3", color: "var(--green)" },
+  badgeErr: { background: "#fef2f2", color: "var(--rose)" },
+  badgePaused: { background: "#fef7ed", color: "var(--amber)" },
+  badgeCancelled: { background: "var(--bg)", color: "var(--text-dim)" },
+  badgeRetry: { background: "#edf6fa", color: "#0d6b8c" },
   actions: { display: "flex", gap: "0.25rem" },
-  btnGreen: { color: "#059669" },
-  btnRed: { color: "#e11d48" },
+  btnGreen: { color: "var(--green)" },
+  btnRed: { color: "var(--rose)" },
 };

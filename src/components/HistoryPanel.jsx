@@ -28,7 +28,7 @@ export default function HistoryPanel({
 
   if (loading) return (
     <div style={s.wrap}>
-      <div style={s.head}><span>📜 History</span></div>
+      <div style={s.head}><span>History</span></div>
       <div className="empty-hint">Loading…</div>
     </div>
   );
@@ -38,7 +38,7 @@ export default function HistoryPanel({
 
       {/* ── Head ── */}
       <div style={s.head}>
-        <span style={s.headTitle}>📜 History</span>
+        <span style={s.headTitle}>History</span>
         <div style={s.headR}>
           {filtered.length > 0 && (
             <button
@@ -120,7 +120,7 @@ function HistoryRow({ record: r, onRemove, showRoom }) {
         {r.avgSpeed > 0 && <span style={s.meta}>{formatSpeed(r.avgSpeed)} avg</span>}
         {r.duration > 0 && <span style={s.meta}>{r.duration.toFixed(1)}s</span>}
         {r.compressed && (
-          <span style={{ ...s.meta, color: "#8b5cf6", fontWeight: 600 }} title="Compressed">⚡</span>
+          <span style={{ ...s.meta, color: "var(--text-muted)", fontWeight: 600 }} title="Compressed">CMP</span>
         )}
         <span style={s.metaTime}>{date} · {time}</span>
       </div>
@@ -131,47 +131,46 @@ function HistoryRow({ record: r, onRemove, showRoom }) {
 const s = {
   wrap: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: "0.4rem" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.1rem", flexShrink: 0 },
-  headTitle: { fontSize: "0.75rem", fontWeight: 600, color: "#334155" },
+  headTitle: { fontSize: "0.75rem", fontWeight: 600, color: "var(--text-2)" },
   headR: { display: "flex", alignItems: "center", gap: "0.4rem" },
 
-  // Filter pills
   filterRow: { display: "flex", gap: "0.3rem", flexWrap: "wrap", flexShrink: 0 },
   filterBtn: {
-    background: "rgba(255,255,255,0.45)",
-    borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(255,255,255,0.65)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 20, padding: "0.18rem 0.55rem",
-    fontSize: "0.62rem", color: "#64748b", cursor: "pointer",
+    fontSize: "0.62rem", color: "var(--text-muted)", cursor: "pointer",
     display: "flex", alignItems: "center", gap: "0.3rem",
-    fontFamily: "'Outfit', sans-serif", fontWeight: 500,
+    fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500,
     transition: "all 0.15s",
   },
   filterActive: {
-    background: "rgba(14,165,233,0.12)", borderColor: "rgba(14,165,233,0.35)",
-    color: "#0ea5e9", fontWeight: 600,
+    background: "var(--surface)", borderColor: "var(--border-hover)",
+    color: "var(--text)", fontWeight: 600,
   },
   filterCount: {
-    background: "rgba(100,116,139,0.12)", borderRadius: 10,
-    padding: "0.02rem 0.35rem", fontSize: "0.58rem", color: "#94a3b8",
+    background: "var(--bg)", borderRadius: 10,
+    padding: "0.02rem 0.35rem", fontSize: "0.58rem", color: "var(--text-dim)",
   },
 
   list: { flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: "0.4rem", minWidth: 0, minHeight: 0, paddingBottom: "1.5rem" },
-  row: { borderRadius: 10, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0, flexShrink: 0 },
+  row: { borderRadius: 10, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0, flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)" },
   rowTop: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.28rem", minWidth: 0, overflow: "hidden" },
-  dir: { fontSize: "0.58rem", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 },
-  dirOut: { color: "#0ea5e9" },
-  dirIn: { color: "#10b981" },
-  rName: { fontSize: "0.74rem", color: "#0f172a", fontWeight: 500, flex: 1, minWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  dir: { fontSize: "0.58rem", fontWeight: 700, fontFamily: "'Geist Mono', monospace", flexShrink: 0 },
+  dirOut: { color: "var(--send)" },
+  dirIn: { color: "var(--receive)" },
+  rName: { fontSize: "0.74rem", color: "var(--text)", fontWeight: 500, flex: 1, minWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   roomTag: {
-    fontSize: "0.56rem", fontFamily: "'JetBrains Mono', monospace",
-    background: "rgba(139,92,246,0.1)", color: "#8b5cf6",
-    border: "1px solid rgba(139,92,246,0.2)",
+    fontSize: "0.56rem", fontFamily: "'Geist Mono', monospace",
+    background: "var(--bg)", color: "var(--text-muted)",
+    border: "1px solid var(--border)",
     borderRadius: 4, padding: "0.08rem 0.35rem", flexShrink: 0,
   },
   status: { fontSize: "0.68rem", fontWeight: 700, flexShrink: 0 },
-  stDone: { color: "#059669" },
-  stErr: { color: "#e11d48" },
-  removeBtn: { background: "none", border: "none", color: "#e51515ff", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
+  stDone: { color: "var(--green)" },
+  stErr: { color: "var(--rose)" },
+  removeBtn: { background: "none", border: "none", color: "var(--rose)", fontSize: "0.85rem", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 },
   rowFoot: { display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" },
-  meta: { fontSize: "0.6rem", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" },
-  metaTime: { fontSize: "0.6rem", color: "#94a3b8", marginLeft: "auto" },
+  meta: { fontSize: "0.6rem", color: "var(--text-muted)", fontFamily: "'Geist Mono', monospace" },
+  metaTime: { fontSize: "0.6rem", color: "var(--text-dim)", marginLeft: "auto" },
 };

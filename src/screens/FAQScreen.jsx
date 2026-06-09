@@ -24,7 +24,7 @@ export default function FAQScreen({ onBack }) {
               key={i} 
               style={{
                 ...s.item,
-                borderColor: openIndex === i ? "rgba(14,165,233,0.3)" : "rgba(255,255,255,0.4)"
+                borderColor: openIndex === i ? "var(--border-hover)" : "var(--border)"
               }}
             >
               <div style={s.question} onClick={() => toggle(i)}>
@@ -77,7 +77,6 @@ const s = {
     alignItems: "center",
     justifyContent: "center",
     padding: "1.5rem",
-    boxSizing: "border-box",
   },
   card: {
     maxWidth: 600,
@@ -85,36 +84,34 @@ const s = {
     padding: "2rem",
     display: "flex",
     flexDirection: "column",
-    gap: "1.5rem",
+    gap: "1.25rem",
   },
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "0.5rem",
+    marginBottom: "0.25rem",
   },
   title: {
-    fontSize: "1.8rem",
-    fontWeight: 800,
-    background: "linear-gradient(135deg, #0ea5e9, #8b5cf6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    fontSize: "1.6rem",
+    fontWeight: 700,
+    color: "var(--text)",
     margin: 0,
   },
   list: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.75rem",
+    gap: "0.6rem",
   },
   item: {
-    background: "rgba(255,255,255,0.3)",
+    background: "var(--bg)",
     borderRadius: "12px",
     border: "1px solid",
     transition: "all 0.2s ease",
     overflow: "hidden",
   },
   question: {
-    padding: "1rem 1.25rem",
+    padding: "0.9rem 1.1rem",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -122,20 +119,19 @@ const s = {
     userSelect: "none",
   },
   qText: {
-    fontSize: "0.95rem",
+    fontSize: "0.88rem",
     fontWeight: 600,
-    color: "#0f172a",
+    color: "var(--text)",
   },
   arrow: {
-    fontSize: "1.2rem",
-    color: "#64748b",
-    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    fontSize: "1rem",
+    color: "var(--text-dim)",
+    transition: "transform 0.25s ease",
   },
   answer: {
-    padding: "0 1.25rem 1.25rem 1.25rem",
-    fontSize: "0.88rem",
-    color: "#475569",
+    padding: "0 1.1rem 0.9rem 1.1rem",
+    fontSize: "0.82rem",
+    color: "var(--text-muted)",
     lineHeight: 1.6,
-    animation: "card-enter 0.3s ease-out",
   }
 };

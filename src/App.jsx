@@ -22,8 +22,7 @@ const footerStyle = {
   gap: "0.2rem",
   zIndex: 100,
   pointerEvents: "none",
-  background: "linear-gradient(to top, rgba(232,244,248,0.8), transparent)",
-  backdropFilter: "blur(4px)",
+  background: "linear-gradient(to top, var(--bg), transparent)",
 };
 
 const footerContentStyle = {
@@ -170,7 +169,7 @@ export default function App() {
             <span style={footerLinkStyle} onClick={() => navigateTo("faq")}>FAQ</span>
           </div>
           <div style={footerCopyrightStyle}>
-            © 2026 Droplink • Secure P2P
+            © 2026 droplink
           </div>
         </footer>
       )}
