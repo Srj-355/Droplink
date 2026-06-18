@@ -171,7 +171,7 @@ export function usePeer({ onTransferComplete } = {}) {
       const tracker = speedTrackers.current[fileId];
       const duration = tracker ? (Date.now() - tracker.startTime) / 1000 : null;
       const avgSpeed = duration && state.fileSize ? state.fileSize / duration : null;
-      
+
       const ratio = state.rawBytes > 0 ? (state.compBytes / state.rawBytes) : 1;
       const savingsPercent = ((1 - ratio) * 100).toFixed(1);
       const savingsBytes = state.rawBytes - state.compBytes;
@@ -181,7 +181,7 @@ export function usePeer({ onTransferComplete } = {}) {
       console.log(`  └─ Size: ${formatBytes(state.rawBytes)} (Raw) → ${formatBytes(state.compBytes)} (On-wire)`);
       console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
       console.log(`  └─ Estimated compression time save: ${timeSaved}s`);
-      
+
       onTransferComplete?.({ id: fileId, name: state.fileName, size: state.fileSize, direction: "out", status: "done", duration, avgSpeed, compressed: state.compressionActive });
     } catch (err) { console.error("Error in _finalizeSender:", err); }
     finally { delete sendStates.current[fileId]; delete speedTrackers.current[fileId]; activeFileId.current = null; _advanceQueueRef.current?.(); }
@@ -305,13 +305,13 @@ export function usePeer({ onTransferComplete } = {}) {
       const s = sendStates.current[fileId]; if (!s || s.aborted) return;
       let data = buffer;
       if (s.useCompression) {
-        try { 
-          const comp = await compressChunk(buffer); 
-          if (index === 0 && (comp.byteLength / buffer.byteLength) > 0.9) { 
+        try {
+          const comp = await compressChunk(buffer);
+          if (index === 0 && (comp.byteLength / buffer.byteLength) > 0.9) {
             console.log("[Compression] Threshold not met on first chunk, disabling compression for this file.");
-            s.useCompression = false; 
-            s.compressionActive = false; 
-          } else data = comp; 
+            s.useCompression = false;
+            s.compressionActive = false;
+          } else data = comp;
         }
         catch { s.useCompression = false; }
       }
@@ -343,7 +343,7 @@ export function usePeer({ onTransferComplete } = {}) {
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((chunkIndex / totalChunks) * 100)), speed, eta });
         if (chunkIndex % 4 === 0) await new Promise(r => setTimeout(r, 0));
       }
-      st.allDispatched = true; 
+      st.allDispatched = true;
       console.log(`[Transfer] All chunks for "${st.fileName}" dispatched. (Acked: ${st.ackedChunks}/${st.totalChunks})`);
       _checkCompletion(fileId);
     })();
@@ -404,7 +404,7 @@ export function usePeer({ onTransferComplete } = {}) {
     setMessages([]);
     setTransfers([]);
     setFileQueue([]);
-    setIsJoining(false); 
+    setIsJoining(false);
     setRoomCode("");
     setShareUrl("");
     setPeerError("");
@@ -462,7 +462,7 @@ export function usePeer({ onTransferComplete } = {}) {
     a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     updateTransfer(fileId, { progress: 100, status: "done" });
     addMessage({ type: "system", text: `✅ Received "${buf.meta.name}"` });
-    
+
     const ratio = buf.rawBytes > 0 ? (buf.compBytes / buf.rawBytes) : 1;
     const savingsPercent = ((1 - ratio) * 100).toFixed(1);
     const savingsBytes = buf.rawBytes - buf.compBytes;
