@@ -72,7 +72,7 @@ const FAQS = [
 
 const s = {
   page: {
-    minHeight: "100vh",
+    minHeight: "calc(100vh - 3.5rem)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

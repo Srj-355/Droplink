@@ -123,7 +123,10 @@ export function useHistory() {
     };
     try {
       await idbAdd(record);
-      setHistory((prev) => [record, ...prev].slice(0, MAX_RECORDS));
+      setHistory((prev) => {
+        const deduped = prev.filter((r) => r.id !== record.id);
+        return [record, ...deduped].slice(0, MAX_RECORDS);
+      });
     } catch (e) {
       console.warn("History write failed:", e);
     }

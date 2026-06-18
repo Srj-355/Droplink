@@ -32,6 +32,8 @@ export default function ChatPanel({ messages, connected, onSend }) {
               ...(m.type === "system" ? s.msgSys :
                 m.sender === "me" ? s.msgMe : s.msgThem),
             }}>
+              {m.type === "chat" && m.sender === "me" && <span style={s.arrow}>→</span>}
+              {m.type === "chat" && m.sender === "them" && <span style={s.arrow}>←</span>}
               {m.text}
             </div>
             {m.time && m.type !== "system" && (
@@ -71,7 +73,8 @@ const s = {
   headTitle: { fontSize: "0.78rem", fontWeight: 600, color: "var(--text-2)" },
   msgs: { flex: 1, overflowY: "auto", padding: "0.8rem", display: "flex", flexDirection: "column", gap: "0.4rem", minHeight: 0 },
   wrap: { display: "flex", flexDirection: "column" },
-  msg: { maxWidth: "88%", padding: "0.42rem 0.7rem", borderRadius: 10, fontSize: "0.76rem", lineHeight: 1.55, wordBreak: "break-word" },
+  msg: { maxWidth: "88%", padding: "0.42rem 0.7rem", borderRadius: 10, fontSize: "0.76rem", lineHeight: 1.55, wordBreak: "break-word", display: "flex", alignItems: "center", gap: "0.3rem" },
+  arrow: { fontSize: "0.65rem", opacity: 0.7 },
   msgMe: { background: "var(--send)", color: "#fff", borderBottomRightRadius: 2 },
   msgThem: { background: "var(--bg)", color: "var(--text)", borderBottomLeftRadius: 2 },
   msgSys: { background: "transparent", color: "var(--text-dim)", fontSize: "0.66rem", textAlign: "center", padding: "0.18rem 0.5rem" },

@@ -106,6 +106,7 @@ export function usePeer({ onTransferComplete } = {}) {
   const dcRef = useRef(null);
   const connectedRef = useRef(false);
   const peerRef = useRef(null);
+  const messagesRef = useRef([]);
   const sendStates = useRef({});
   const speedTrackers = useRef({});
   const receiveBuffers = useRef({});
@@ -183,6 +184,17 @@ export function usePeer({ onTransferComplete } = {}) {
       console.log(`  └─ Estimated compression time save: ${timeSaved}s`);
 
       onTransferComplete?.({ id: fileId, name: state.fileName, size: state.fileSize, direction: "out", status: "done", duration, avgSpeed, compressed: state.compressionActive });
+
+      // Notify peer so they also record this transfer in their history
+      const c = connRef.current;
+      if (c) {
+        c.send(encodeJSON({
+          type: "transfer-complete", fileId,
+          name: state.fileName, size: state.fileSize,
+          direction: "out", status: "done",
+          duration: duration ?? null, avgSpeed: avgSpeed ?? null,
+        }));
+      }
     } catch (err) { console.error("Error in _finalizeSender:", err); }
     finally { delete sendStates.current[fileId]; delete speedTrackers.current[fileId]; activeFileId.current = null; _advanceQueueRef.current?.(); }
   }, [onTransferComplete]);
@@ -425,6 +437,7 @@ export function usePeer({ onTransferComplete } = {}) {
   useEffect(() => { connectedRef.current = connected; }, [connected]);
   useEffect(() => { fileQueueRef.current = fileQueue; }, [fileQueue]);
   useEffect(() => { peerRef.current = peer; }, [peer]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { setLibsReady(true); }, []);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("room");
@@ -472,6 +485,8 @@ export function usePeer({ onTransferComplete } = {}) {
     if (savingsPercent > 0) {
       console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
     }
+
+    onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null });
     delete receiveBuffers.current[fileId];
   };
 
@@ -480,6 +495,14 @@ export function usePeer({ onTransferComplete } = {}) {
     if (frame.type === "json") {
       const { data } = frame;
       if (data.type === "chat") addMessage({ type: "chat", text: data.text, sender: "them", time: data.time });
+      if (data.type === "sync-history") {
+        data.messages.forEach((m) => {
+          const existing = messagesRef.current.some((x) => x.text === m.text && x.time === m.time);
+          if (!existing) {
+            addMessage({ type: "chat", text: m.text, sender: m.sender === "me" ? "them" : "me", time: m.time });
+          }
+        });
+      }
       if (data.type === "hello") peerCompression.current = data.compression || [];
       if (data.type === "room-full") { setPeerError("Room is full."); setTimeout(leaveRoom, 1000); }
       if (data.type === "file-meta") {
@@ -505,6 +528,14 @@ export function usePeer({ onTransferComplete } = {}) {
       if (data.type === "resume-request") {
         const st = sendStates.current[data.fileId]; if (st) { st.resumeFrom = data.receivedCount; addMessage({ type: "system", text: "♻️ Resuming..." }); }
       }
+      if (data.type === "transfer-complete") {
+        onTransferComplete?.({
+          id: data.fileId, name: data.name, size: data.size,
+          direction: data.direction === "out" ? "in" : "out",
+          status: data.status, duration: data.duration ?? null,
+          avgSpeed: data.avgSpeed ?? null,
+        });
+      }
       return;
     }
     if (frame.type === "chunk") {
@@ -518,7 +549,7 @@ export function usePeer({ onTransferComplete } = {}) {
         buf.pendingChunks.set(index, chunk); buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
         await flushPending(fileId);
-        if (buf.received === buf.meta.totalChunks) { await buf.writable.close(); updateTransfer(fileId, { progress: 100, status: "done" }); delete receiveBuffers.current[fileId]; }
+        if (buf.received === buf.meta.totalChunks) { await buf.writable.close(); updateTransfer(fileId, { progress: 100, status: "done" }); onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null }); delete receiveBuffers.current[fileId]; }
       } else {
         buf.chunks[index] = chunk; buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
@@ -538,6 +569,16 @@ export function usePeer({ onTransferComplete } = {}) {
       if (COMPRESSION_ENABLED && isCompressionSupported()) connection.send(encodeJSON({ type: "hello", compression: ["deflate-raw"] }));
       const dc = connection._dc || connection.dataChannel; if (dc) { dc.bufferedAmountLowThreshold = LOW_WATERMARK; dcRef.current = dc; }
       Object.entries(receiveBuffers.current).forEach(([id, b]) => { if (b.received > 0) connection.send(encodeJSON({ type: "resume-request", fileId: id, receivedCount: b.received })); });
+
+      // Sync chat history so both peers always have the full conversation
+      const chatMsgs = messagesRef.current.filter((m) => m.type === "chat");
+      if (chatMsgs.length > 0) {
+        connection.send(encodeJSON({
+          type: "sync-history",
+          messages: chatMsgs.map((m) => ({ text: m.text, sender: m.sender, time: m.time })),
+        }));
+      }
+
       _advanceQueue();
     });
     connection.on("data", raw => { dataQueue.current.push(raw); processQueue(); });
