@@ -99,7 +99,7 @@ const FEATURES = [
 
 const s = {
   page: {
-    minHeight: "calc(100vh - 3.5rem)", display: "flex",
+    minHeight: "calc(100dvh - 3.5rem)", display: "flex",
     alignItems: "center", justifyContent: "center", padding: "1rem",
   },
   hero: {
