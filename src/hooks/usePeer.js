@@ -382,7 +382,7 @@ export function usePeer({ onTransferComplete } = {}) {
       setIsJoining(false);
       if (!connectedRef.current) {
         setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`);
-        leaveRoomRef.current?.();
+        setTimeout(() => leaveRoomRef.current?.(), 2000);
       }
     });
   }, [joinCode, isJoining]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -419,7 +419,6 @@ export function usePeer({ onTransferComplete } = {}) {
     setIsJoining(false);
     setRoomCode("");
     setShareUrl("");
-    setPeerError("");
     setReconnecting(false);
     setScreen("home");
 
@@ -504,7 +503,7 @@ export function usePeer({ onTransferComplete } = {}) {
         });
       }
       if (data.type === "hello") peerCompression.current = data.compression || [];
-      if (data.type === "room-full") { setPeerError("Room is full."); setTimeout(leaveRoom, 1000); }
+      if (data.type === "room-full") { setPeerError("Room is full."); setTimeout(leaveRoom, 2000); }
       if (data.type === "file-meta") {
         const { fileId, name, size, totalChunks, chunkSize } = data;
         const useStream = STREAM_SUPPORTED && size >= STREAM_MIN_BYTES;
@@ -583,14 +582,20 @@ export function usePeer({ onTransferComplete } = {}) {
     });
     connection.on("data", raw => { dataQueue.current.push(raw); processQueue(); });
     connection.on("close", () => {
-      connRef.current = null; dcRef.current = null; connectedRef.current = false;
+      connRef.current = null; dcRef.current = null;
+      const wasConnected = connectedRef.current;
+      connectedRef.current = false;
       setConnected(false);
-      if (!intentionalLeave.current) {
+      if (wasConnected && !intentionalLeave.current) {
         setTransfers(prev => prev.map(t =>
           (t.status === "sending" || t.status === "receiving") ? { ...t, status: "reconnecting" } : t
         ));
         _attemptReconnect();
-      } else leaveRoom();
+      } else if (intentionalLeave.current) {
+        leaveRoom();
+      }
+      // if never connected (wasConnected=false) and !intentionalLeave,
+      // the join error handler's timeout will call leaveRoom
     });
   };
 
