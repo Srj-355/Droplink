@@ -30,11 +30,17 @@ export const PEER_SERVER = {
   key: "droplink",
 };
 
-// ─── ICE / STUN servers ───────────────────────────────────────────────────────
-// Multiple independent STUN providers for redundancy.
-// Works for ~70% of connections (same WiFi, simple home NAT).
-// NOTE: A TURN relay server is required for strict NAT / mobile data.
-// For university demo: put all devices on the same hotspot as a backup.
+// ─── ICE / STUN + TURN servers ────────────────────────────────────────────────
+// STUN handles ~70% of connections (same WiFi, simple home NAT).
+// TURN relay (below) covers the rest: strict NAT, mobile data, and
+// college/office WiFi that blocks direct UDP or isolates clients.
+// ─── Free TURN (Open Relay Project: 20 GB/month, no card) ────────────────────
+// Uses the public demo credential — fine for demos and testing.
+// For your own private quota, sign up free at https://dashboard.metered.ca
+// and paste your personal username/credential here.
+const TURN_USERNAME = "openrelayproject";
+const TURN_CREDENTIAL = "openrelayproject";
+
 export const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -44,6 +50,21 @@ export const ICE_SERVERS = [
   { urls: "stun:stun.cloudflare.com:3478" },
   { urls: "stun:stun.stunprotocol.org:3478" },
   { urls: "stun:stun.voip.blackberry.com:3478" },
+  { urls: "stun:openrelay.metered.ca:80" },
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: TURN_USERNAME,
+    credential: TURN_CREDENTIAL,
+  },
+  {
+    urls: ["turns:openrelay.metered.ca:443?transport=tcp"],
+    username: TURN_USERNAME,
+    credential: TURN_CREDENTIAL,
+  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

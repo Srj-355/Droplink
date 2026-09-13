@@ -39,6 +39,14 @@ const LOW_WATERMARK = 2 * 1024 * 1024;
 const SCTP_WARMUP_MS = 50;
 const TYPE_JSON = 0x01;
 const TYPE_CHUNK = 0x02;
+// How long to wait for the private signal server before falling back
+// to the public PeerJS cloud (covers Render free-tier cold starts).
+const SIGNAL_FALLBACK_MS = 8000;
+
+function getPeerOptions(mode) {
+  if (mode === "public") return { debug: 0 }; // PeerJS public cloud defaults
+  return buildPeerOptions();
+}
 
 function encodeJSON(obj) {
   const j = new TextEncoder().encode(JSON.stringify(obj));
@@ -127,6 +135,8 @@ export function usePeer({ onTransferComplete } = {}) {
   const processingData = useRef(false);
   const lastSignallingAlert = useRef(0);
   const setupConn = useRef(null);
+  const signalModeRef = useRef("custom"); // "custom" → private server, "public" → PeerJS cloud fallback
+  const signalTimerRef = useRef(null);
 
   const addMessage = useCallback((msg) =>
     setMessages((prev) => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }])
@@ -153,6 +163,34 @@ export function usePeer({ onTransferComplete } = {}) {
     speedTrackers.current[fileId] = { ...tr, lastUpdate: now, speed, eta };
     return { speed, eta };
   }, []);
+
+  // Creates a Peer on the private server, auto-falling back to the public
+  // PeerJS cloud if the private server doesn't answer in time (cold start).
+  const spawnPeer = useCallback((idOrUndefined, wire, opts = {}) => {
+    const allowFallback = opts.allowFallback !== false;
+    const p = new Peer(idOrUndefined, getPeerOptions(signalModeRef.current));
+    let opened = false;
+    p.on("open", () => {
+      opened = true;
+      if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+    });
+    if (allowFallback && signalModeRef.current === "custom") {
+      if (signalTimerRef.current) clearTimeout(signalTimerRef.current);
+      signalTimerRef.current = setTimeout(() => {
+        signalTimerRef.current = null;
+        if (!opened && signalModeRef.current === "custom" && !intentionalLeave.current) {
+          console.warn("[Signal] Private server not responding. Falling back to public PeerJS cloud…");
+          try { p.destroy(); } catch { /* ignore */ }
+          signalModeRef.current = "public";
+          setPeerError("");
+          addMessage({ type: "system", text: "⚠️ Private signal server unreachable — using public relay instead." });
+          setPeer(spawnPeer(idOrUndefined, wire, { allowFallback: false }));
+        }
+      }, SIGNAL_FALLBACK_MS);
+    }
+    wire(p);
+    return p;
+  }, [addMessage]);
 
   const _advanceQueue = useCallback(() => {
     if (activeFileId.current || !connectedRef.current) return;
@@ -252,7 +290,7 @@ export function usePeer({ onTransferComplete } = {}) {
       // 1. If Peer is destroyed, recreate it
       if (!p || p.destroyed) {
         logOnce("🛠️ Peer engine crashed. Re-initializing…");
-        const newPeer = isHost.current ? new Peer(code, buildPeerOptions()) : new Peer(undefined, buildPeerOptions());
+        const newPeer = isHost.current ? new Peer(code, getPeerOptions(signalModeRef.current)) : new Peer(undefined, getPeerOptions(signalModeRef.current));
         p = newPeer;
         setPeer(newPeer);
         newPeer.on("open", id => {
@@ -363,29 +401,44 @@ export function usePeer({ onTransferComplete } = {}) {
 
   const createRoom = useCallback(() => {
     setPeerError(""); intentionalLeave.current = false; isHost.current = true;
-    const p = new Peer(generateRoomCode(), buildPeerOptions());
-    p.on("open", id => { targetRoomCode.current = id; setRoomCode(id); setShareUrl(`${window.location.origin}${window.location.pathname}?room=${id}`); setPeer(p); setScreen("host"); window.history.replaceState({}, "", `${window.location.origin}${window.location.pathname}?room=${id}`); });
-    p.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); p.reconnect(); });
-    p.on("connection", conn => { if (connectedRef.current) { conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); }); return; } setupConn.current(conn); });
-    p.on("error", err => { if (!connectedRef.current) setPeerError(`Create failed: ${err.type}`); });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const code = generateRoomCode();
+    const wireHost = (peer) => {
+      peer.on("open", id => { targetRoomCode.current = id; setRoomCode(id); setShareUrl(`${window.location.origin}${window.location.pathname}?room=${id}`); setPeer(peer); setScreen("host"); window.history.replaceState({}, "", `${window.location.origin}${window.location.pathname}?room=${id}`); });
+      peer.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); peer.reconnect(); });
+      peer.on("connection", conn => { if (connectedRef.current) { conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); }); return; } setupConn.current(conn); });
+      peer.on("error", err => { if (!connectedRef.current) setPeerError(`Create failed: ${err.type}`); });
+    };
+    setPeer(spawnPeer(code, wireHost));
+  }, [spawnPeer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const joinRoom = useCallback(() => {
     const code = joinCode.trim().toUpperCase(); if (!code) return;
     if (isJoining || connectedRef.current) return;
     setIsJoining(true);
     intentionalLeave.current = false; isHost.current = false; targetRoomCode.current = code;
-    const p = new Peer(undefined, buildPeerOptions());
-    p.on("open", () => { setupConn.current(p.connect(code, { reliable: true, serialization: "raw" })); setPeer(p); });
-    p.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); p.reconnect(); });
-    p.on("error", err => {
-      setIsJoining(false);
-      if (!connectedRef.current) {
-        setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`);
-        setTimeout(() => leaveRoomRef.current?.(), 2000);
-      }
-    });
-  }, [joinCode, isJoining]); // eslint-disable-line react-hooks/exhaustive-deps
+    const wireJoin = (peer) => {
+      peer.on("open", () => { setupConn.current(peer.connect(code, { reliable: true, serialization: "raw" })); setPeer(peer); });
+      peer.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); peer.reconnect(); });
+      peer.on("error", err => {
+        // Private server asleep (or host sitting on the public cloud)?
+        // Retry once on the public cloud before giving up.
+        if (!connectedRef.current && signalModeRef.current === "custom") {
+          console.warn(`[Signal] Private server issue (${err.type}). Retrying join on public cloud…`);
+          try { peer.destroy(); } catch { /* ignore */ }
+          if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+          signalModeRef.current = "public";
+          setPeer(spawnPeer(undefined, wireJoin, { allowFallback: false }));
+          return;
+        }
+        setIsJoining(false);
+        if (!connectedRef.current) {
+          setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`);
+          setTimeout(() => leaveRoomRef.current?.(), 2000);
+        }
+      });
+    };
+    setPeer(spawnPeer(undefined, wireJoin));
+  }, [joinCode, isJoining, spawnPeer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const queueFile = useCallback((file) => {
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
@@ -397,6 +450,8 @@ export function usePeer({ onTransferComplete } = {}) {
     intentionalLeave.current = true;
     if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
     if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
+    if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+    signalModeRef.current = "custom"; // fresh attempt on private server next time
     Object.values(sendStates.current).forEach(s => { s.aborted = true; Object.values(s.ackTimers).forEach(clearTimeout); });
 
     // Clear refs
