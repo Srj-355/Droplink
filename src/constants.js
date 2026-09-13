@@ -34,12 +34,22 @@ export const PEER_SERVER = {
 // STUN handles ~70% of connections (same WiFi, simple home NAT).
 // TURN relay (below) covers the rest: strict NAT, mobile data, and
 // college/office WiFi that blocks direct UDP or isolates clients.
-// ─── Free TURN (Open Relay Project: 20 GB/month, no card) ────────────────────
-// Uses the public demo credential — fine for demos and testing.
-// For your own private quota, sign up free at https://dashboard.metered.ca
-// and paste your personal username/credential here.
-const TURN_USERNAME = "openrelayproject";
-const TURN_CREDENTIAL = "openrelayproject";
+// ─── Free TURN (Metered: 20 GB/month Open Relay, 500 MB/month trial) ──────────
+// Credentials live in the gitignored ".env" file (see ".env.example").
+// They are injected at build time as VITE_TURN_* — restart the dev server
+// and redeploy after changing them. On Vercel, set them in the project
+// dashboard under Environment Variables.
+// TURN entries are only added when all three values are present, so a
+// missing ".env" safely falls back to STUN-only (same-network transfers).
+// Verify BEFORE deploying: node turn-test.mjs <host> 80 <username> <credential>
+// must print "ALLOCATE SUCCESS".
+const TURN_HOST = import.meta.env.VITE_TURN_HOST || "";
+const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME || "";
+const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL || "";
+const TURN_CONFIGURED = Boolean(TURN_HOST && TURN_USERNAME && TURN_CREDENTIAL);
+if (!TURN_CONFIGURED) {
+  console.warn("[ICE] TURN credentials missing — check your .env file. Using STUN only.");
+}
 
 export const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -50,21 +60,26 @@ export const ICE_SERVERS = [
   { urls: "stun:stun.cloudflare.com:3478" },
   { urls: "stun:stun.stunprotocol.org:3478" },
   { urls: "stun:stun.voip.blackberry.com:3478" },
-  { urls: "stun:openrelay.metered.ca:80" },
-  {
-    urls: [
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turn:openrelay.metered.ca:443?transport=tcp",
-    ],
-    username: TURN_USERNAME,
-    credential: TURN_CREDENTIAL,
-  },
-  {
-    urls: ["turns:openrelay.metered.ca:443?transport=tcp"],
-    username: TURN_USERNAME,
-    credential: TURN_CREDENTIAL,
-  },
+  ...(TURN_CONFIGURED
+    ? [
+        { urls: `stun:${TURN_HOST}:80` },
+        {
+          urls: [
+            `turn:${TURN_HOST}:80`,
+            `turn:${TURN_HOST}:443`,
+            `turn:${TURN_HOST}:80?transport=tcp`,
+            `turn:${TURN_HOST}:443?transport=tcp`,
+          ],
+          username: TURN_USERNAME,
+          credential: TURN_CREDENTIAL,
+        },
+        {
+          urls: [`turns:${TURN_HOST}:443?transport=tcp`],
+          username: TURN_USERNAME,
+          credential: TURN_CREDENTIAL,
+        },
+      ]
+    : []),
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
