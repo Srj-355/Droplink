@@ -109,6 +109,8 @@ export function usePeer({ onTransferComplete } = {}) {
   const [libsReady, setLibsReady] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [connStats, setConnStats] = useState(null);
+  const [signalMode, setSignalMode] = useState("custom");
 
   const connRef = useRef(null);
   const dcRef = useRef(null);
@@ -137,6 +139,7 @@ export function usePeer({ onTransferComplete } = {}) {
   const setupConn = useRef(null);
   const signalModeRef = useRef("custom"); // "custom" → private server, "public" → PeerJS cloud fallback
   const signalTimerRef = useRef(null);
+  const statsIntervalRef = useRef(null);
 
   const addMessage = useCallback((msg) =>
     setMessages((prev) => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }])
@@ -164,6 +167,71 @@ export function usePeer({ onTransferComplete } = {}) {
     return { speed, eta };
   }, []);
 
+  // ── Connection diagnostics (h): poll RTCPeerConnection.getStats() ──
+  // Read-only side effect — never touches the transfer protocol.
+  const pollConnStats = useCallback(async () => {
+    try {
+      const conn = connRef.current;
+      const pc = conn?.peerConnection;
+      if (!pc || pc.signalingState === "closed") return;
+      let report = null;
+      try { report = await pc.getStats(); }
+      catch { return; }
+      if (!report) return;
+
+      let pair = null;
+      let localCand = null;
+      let remoteCand = null;
+      const pairs = [];
+      const locals = new Map();
+      const remotes = new Map();
+      report.forEach((s) => {
+        if (s.type === "candidate-pair") pairs.push(s);
+        else if (s.type === "local-candidate") locals.set(s.id, s);
+        else if (s.type === "remote-candidate") remotes.set(s.id, s);
+      });
+      pair = pairs.find((p) => p.nominated) || pairs.find((p) => p.state === "succeeded" || p.writable) || pairs[0] || null;
+      if (pair) {
+        localCand = locals.get(pair.localCandidateId) || null;
+        remoteCand = remotes.get(pair.remoteCandidateId) || null;
+      }
+      const candStr = `${localCand?.candidate || ""} ${remoteCand?.candidate || ""}`.toLowerCase();
+      const isRelay = Boolean(
+        localCand?.candidateType === "relay" || remoteCand?.candidateType === "relay" ||
+        localCand?.type === "relay" || remoteCand?.type === "relay" ||
+        candStr.includes("typ relay")
+      );
+      const rttSec = pair?.currentRoundTripTime ?? pair?.roundTripTime ?? null;
+      const dc = dcRef.current;
+      setConnStats({
+        timestamp: Date.now(),
+        signaling: signalModeRef.current,
+        iceState: pc.iceConnectionState || "--",
+        connState: pc.connectionState || "--",
+        connType: !pair ? "--" : isRelay ? "relay" : (remoteCand?.candidateType || remoteCand?.type || "direct"),
+        isRelay,
+        rttMs: typeof rttSec === "number" ? Math.round(rttSec * 1000) : null,
+        localType: localCand?.candidateType || localCand?.type || null,
+        remoteType: remoteCand?.candidateType || remoteCand?.type || null,
+        localProto: localCand?.protocol || null,
+        bytesSent: pair?.bytesSent ?? null,
+        bytesReceived: pair?.bytesReceived ?? pair?.bytesReceived ?? null,
+        bufferedAmount: typeof dc?.bufferedAmount === "number" ? dc.bufferedAmount : null,
+      });
+    } catch { /* diagnostics must never break transfers */ }
+  }, []);
+
+  const startStatsPolling = useCallback(() => {
+    if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
+    pollConnStats();
+    statsIntervalRef.current = setInterval(pollConnStats, 2000);
+  }, [pollConnStats]);
+
+  const stopStatsPolling = useCallback(() => {
+    if (statsIntervalRef.current) { clearInterval(statsIntervalRef.current); statsIntervalRef.current = null; }
+    setConnStats(null);
+  }, []);
+
   // Creates a Peer on the private server, auto-falling back to the public
   // PeerJS cloud if the private server doesn't answer in time (cold start).
   const spawnPeer = useCallback((idOrUndefined, wire, opts = {}) => {
@@ -182,6 +250,7 @@ export function usePeer({ onTransferComplete } = {}) {
           console.warn("[Signal] Private server not responding. Falling back to public PeerJS cloud…");
           try { p.destroy(); } catch { /* ignore */ }
           signalModeRef.current = "public";
+          setSignalMode("public");
           setPeerError("");
           addMessage({ type: "system", text: "⚠️ Private signal server unreachable — using public relay instead." });
           setPeer(spawnPeer(idOrUndefined, wire, { allowFallback: false }));
@@ -221,7 +290,7 @@ export function usePeer({ onTransferComplete } = {}) {
       console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
       console.log(`  └─ Estimated compression time save: ${timeSaved}s`);
 
-      onTransferComplete?.({ id: fileId, name: state.fileName, size: state.fileSize, direction: "out", status: "done", duration, avgSpeed, compressed: state.compressionActive });
+      onTransferComplete?.({ id: fileId, name: state.fileName, size: state.fileSize, direction: "out", status: "done", duration, avgSpeed, compressed: state.compressionActive, rawBytes: state.rawBytes, compBytes: state.compBytes, savedBytes: savingsBytes });
 
       // Notify peer so they also record this transfer in their history
       const c = connRef.current;
@@ -231,6 +300,8 @@ export function usePeer({ onTransferComplete } = {}) {
           name: state.fileName, size: state.fileSize,
           direction: "out", status: "done",
           duration: duration ?? null, avgSpeed: avgSpeed ?? null,
+          compressed: state.compressionActive,
+          rawBytes: state.rawBytes, compBytes: state.compBytes, savedBytes: savingsBytes,
         }));
       }
     } catch (err) { console.error("Error in _finalizeSender:", err); }
@@ -427,6 +498,7 @@ export function usePeer({ onTransferComplete } = {}) {
           try { peer.destroy(); } catch { /* ignore */ }
           if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
           signalModeRef.current = "public";
+          setSignalMode("public");
           setPeer(spawnPeer(undefined, wireJoin, { allowFallback: false }));
           return;
         }
@@ -451,7 +523,9 @@ export function usePeer({ onTransferComplete } = {}) {
     if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
     if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
     if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
-    signalModeRef.current = "custom"; // fresh attempt on private server next time
+    if (statsIntervalRef.current) { clearInterval(statsIntervalRef.current); statsIntervalRef.current = null; }
+    signalModeRef.current = "custom"; setSignalMode("custom"); // fresh attempt on private server next time
+    setConnStats(null);
     Object.values(sendStates.current).forEach(s => { s.aborted = true; Object.values(s.ackTimers).forEach(clearTimeout); });
 
     // Clear refs
@@ -540,7 +614,7 @@ export function usePeer({ onTransferComplete } = {}) {
       console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
     }
 
-    onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null });
+    onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null, compressed: Boolean(buf.meta.compressed), rawBytes: buf.rawBytes, compBytes: buf.compBytes, savedBytes: savingsBytes });
     delete receiveBuffers.current[fileId];
   };
 
@@ -588,6 +662,9 @@ export function usePeer({ onTransferComplete } = {}) {
           direction: data.direction === "out" ? "in" : "out",
           status: data.status, duration: data.duration ?? null,
           avgSpeed: data.avgSpeed ?? null,
+          compressed: Boolean(data.compressed),
+          rawBytes: data.rawBytes ?? null, compBytes: data.compBytes ?? null,
+          savedBytes: data.savedBytes ?? null,
         });
       }
       return;
@@ -603,7 +680,7 @@ export function usePeer({ onTransferComplete } = {}) {
         buf.pendingChunks.set(index, chunk); buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
         await flushPending(fileId);
-        if (buf.received === buf.meta.totalChunks) { await buf.writable.close(); updateTransfer(fileId, { progress: 100, status: "done" }); onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null }); delete receiveBuffers.current[fileId]; }
+        if (buf.received === buf.meta.totalChunks) { await buf.writable.close(); updateTransfer(fileId, { progress: 100, status: "done" }); addMessage({ type: "system", text: `✅ Received "${buf.meta.name}"` }); const _saved = (buf.rawBytes || 0) - (buf.compBytes || 0); onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null, compressed: Boolean(buf.meta.compressed), rawBytes: buf.rawBytes, compBytes: buf.compBytes, savedBytes: _saved }); delete receiveBuffers.current[fileId]; }
       } else {
         buf.chunks[index] = chunk; buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
@@ -621,7 +698,8 @@ export function usePeer({ onTransferComplete } = {}) {
       if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
 
       if (COMPRESSION_ENABLED && isCompressionSupported()) connection.send(encodeJSON({ type: "hello", compression: ["deflate-raw"] }));
-      const dc = connection._dc || connection.dataChannel; if (dc) { dc.bufferedAmountLowThreshold = LOW_WATERMARK; dcRef.current = dc; }
+      const dc = connection._dc || connection.dataChannel; if (dc) { try { dc.bufferedAmountLowThreshold = LOW_WATERMARK; } catch { /* ignore */ } dcRef.current = dc; }
+      startStatsPolling();
       Object.entries(receiveBuffers.current).forEach(([id, b]) => { if (b.received > 0) connection.send(encodeJSON({ type: "resume-request", fileId: id, receivedCount: b.received })); });
 
       // Sync chat history so both peers always have the full conversation
@@ -638,6 +716,7 @@ export function usePeer({ onTransferComplete } = {}) {
     connection.on("data", raw => { dataQueue.current.push(raw); processQueue(); });
     connection.on("close", () => {
       connRef.current = null; dcRef.current = null;
+      stopStatsPolling();
       const wasConnected = connectedRef.current;
       connectedRef.current = false;
       setConnected(false);
@@ -656,6 +735,7 @@ export function usePeer({ onTransferComplete } = {}) {
 
   return {
     screen, setScreen, roomCode, joinCode, connected, messages, transfers, fileQueue, shareUrl, peerError, libsReady, reconnecting, isJoining,
+    connStats, signalMode,
     setJoinCode, createRoom, joinRoom, queueFile, leaveRoom, setTransfers, setPeerError,
     sendChat: (t) => {
       const c = connRef.current; if (!c || !t.trim()) return false;

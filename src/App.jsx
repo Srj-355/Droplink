@@ -81,6 +81,7 @@ export default function App() {
     pauseTransfer, resumeTransfer,
     cancelTransfer, cancelReceive,
     removeFromQueue,
+    connStats, signalMode,
   } = usePeer({ onTransferComplete });
 
   // Keep ref in sync with roomCode state
@@ -142,6 +143,8 @@ export default function App() {
             history={history}
             historyLoading={historyLoading}
             rooms={rooms}
+            connStats={connStats}
+            signalMode={signalMode}
             onQueueFile={queueFile}
             onSendChat={sendChat}
             onLeave={leaveRoom}

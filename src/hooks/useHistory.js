@@ -120,6 +120,10 @@ export function useHistory() {
       avgSpeed: transfer.avgSpeed ?? null,
       peer: transfer.peer ?? null,
       room: transfer.roomCode ?? "unknown",  // ← new field
+      compressed: Boolean(transfer.compressed),
+      savedBytes: transfer.savedBytes ?? (transfer.rawBytes != null && transfer.compBytes != null ? Math.max(0, transfer.rawBytes - transfer.compBytes) : 0),
+      rawBytes: transfer.rawBytes ?? null,
+      compBytes: transfer.compBytes ?? null,
     };
     try {
       await idbAdd(record);

@@ -5,11 +5,15 @@ import ChatPanel from "../components/ChatPanel";
 import HistoryPanel from "../components/HistoryPanel";
 import QueuePanel from "../components/QueuePanel";
 import Branding from "../components/Branding";
+import SpeedGraph from "../components/SpeedGraph";
+import DiagnosticsPanel from "../components/DiagnosticsPanel";
+import AnalyticsPanel from "../components/AnalyticsPanel";
 
 export default function RoomScreen({
   roomCode, connected, reconnecting,
   messages, transfers, fileQueue,
   peerError, history, historyLoading, rooms,
+  connStats, signalMode,
   onQueueFile, onSendChat, onLeave,
   onClearTransfers, onPause, onResume,
   onCancelTransfer, onCancelReceive,
@@ -44,6 +48,12 @@ export default function RoomScreen({
             onClick={() => setTab("history")}
           >
             History {history.length > 0 && `(${history.length})`}
+          </button>
+          <button
+            className={`tab-btn${tab === "insights" ? " active" : ""}`}
+            onClick={() => setTab("insights")}
+          >
+            Insights
           </button>
         </div>
         {tab === "transfers" && transfers.length > 0 && (
@@ -81,6 +91,13 @@ export default function RoomScreen({
             onClearRoom={onClearRoomHistory}
             onRemove={onRemoveHistory}
           />
+        )}
+        {tab === "insights" && (
+          <div style={s.list}>
+            <SpeedGraph transfers={transfers} />
+            <DiagnosticsPanel connected={connected} connStats={connStats} signalMode={signalMode} />
+            <AnalyticsPanel history={history} transfers={transfers} />
+          </div>
         )}
       </div>
 
