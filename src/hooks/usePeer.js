@@ -120,6 +120,7 @@ export function usePeer({ onTransferComplete } = {}) {
   const [libsReady, setLibsReady] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [joinStatus, setJoinStatus] = useState("");
   const [connStats, setConnStats] = useState(null);
   const [signalMode, setSignalMode] = useState("custom");
   const [maxParallel, setMaxParallel] = useState(1);
@@ -196,6 +197,7 @@ export function usePeer({ onTransferComplete } = {}) {
   // Host listens on BOTH servers with the same code so a plain 6-digit
   // code works no matter which server the joiner tries first.
   const hostPeersRef = useRef([]);
+  const joinTriedOtherRef = useRef(false);
 
   const addMessage = useCallback((msg) => {
     const id = msg.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -621,6 +623,7 @@ export function usePeer({ onTransferComplete } = {}) {
     const code = joinCode.trim().toUpperCase(); if (!code) return;
     if (isJoining || connectedRef.current) return;
     setIsJoining(true);
+    setPeerError("");
     // Honor ?sig= from invite link so we start on the same server as host.
     try {
       const sig = new URLSearchParams(window.location.search).get("sig");
@@ -629,51 +632,80 @@ export function usePeer({ onTransferComplete } = {}) {
         setSignalMode(sig);
       }
     } catch { /* ignore */ }
+    // Log effective ICE config so prod TURN issues are visible in console.
+    try {
+      const hasTurn = ICE_SERVERS.some((s) => JSON.stringify(s.urls || "").includes("turn:"));
+      console.log(`[ICE] ${ICE_SERVERS.length} server entries, TURN ${hasTurn ? "configured" : "MISSING — cross-network will fail"}`);
+    } catch { /* ignore */ }
     intentionalLeave.current = false; isHost.current = false; targetRoomCode.current = code;
+    joinTriedOtherRef.current = false;
+    setJoinStatus("Contacting signal server…");
+    const switchToOtherServer = (why) => {
+      if (joinTriedOtherRef.current || connectedRef.current || intentionalLeave.current) return false;
+      joinTriedOtherRef.current = true;
+      const other = signalModeRef.current === "custom" ? "public" : "custom";
+      console.warn(`[Signal] ${why} — trying ${other} server…`);
+      setJoinStatus(`First server didn't answer — trying alternate…`);
+      try { peerRef.current?.destroy(); } catch { /* ignore */ }
+      if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+      signalModeRef.current = other;
+      setSignalMode(other);
+      setPeer(spawnPeer(undefined, wireJoin, { allowFallback: false }));
+      return true;
+    };
     const wireJoin = (peer) => {
       peer.on("open", () => {
         if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
-        setupConn.current(peer.connect(code, { reliable: true, serialization: "raw" }));
+        setJoinStatus("Room found — establishing encrypted path…");
+        const conn = peer.connect(code, { reliable: true, serialization: "raw" });
+        setupConn.current(conn);
         setPeer(peer);
-        // Give ICE+TURN a chance; if still not connected, try the OTHER
-        // signal server once (covers stale ?sig= links after host fallback).
+        // Surface live ICE state while connecting (join screen shows this).
+        try {
+          const pc = conn?.peerConnection;
+          if (pc) {
+            const onIce = () => {
+              const st = pc.iceConnectionState || pc.connectionState || "";
+              console.log("[ICE] join state:", st);
+              if (connectedRef.current) return;
+              if (st === "checking") setJoinStatus("Checking direct path… (relay fallback next if needed)");
+              else if (st === "connected" || st === "completed") setJoinStatus("Path established — finishing…");
+              else if (st === "disconnected") setJoinStatus("Path interrupted — retrying…");
+              else if (st === "failed") {
+                setIsJoining(false);
+                if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+                setPeerError("Couldn't establish a path (direct blocked, TURN relay failed). Ask host to check TURN credentials/quota, then both refresh and retry.");
+                setJoinStatus("");
+              }
+            };
+            pc.addEventListener?.("iceconnectionstatechange", onIce);
+            pc.addEventListener?.("connectionstatechange", onIce);
+          }
+        } catch { /* diagnostics only */ }
+        // Bounded fallback: try the OTHER signal server ONCE if nothing connects.
         if (signalTimerRef.current) clearTimeout(signalTimerRef.current);
         signalTimerRef.current = setTimeout(() => {
           signalTimerRef.current = null;
-          if (!connectedRef.current && !intentionalLeave.current) {
-            const other = signalModeRef.current === "custom" ? "public" : "custom";
-            console.warn(`[Signal] No connection on ${signalModeRef.current}, trying ${other}…`);
-            try { peer.destroy(); } catch { /* ignore */ }
-            signalModeRef.current = other;
-            setSignalMode(other);
-            setPeer(spawnPeer(undefined, wireJoin, { allowFallback: false }));
+          if (!connectedRef.current && !intentionalLeave.current && pc?.iceConnectionState !== "checking") {
+            if (!switchToOtherServer(`No connection on ${signalModeRef.current}`)) {
+              setIsJoining(false);
+              setJoinStatus("");
+              setPeerError("Still no connection after trying both servers. Likely TURN relay failure — verify TURN credentials and retry.");
+            }
           }
-        }, SIGNAL_FALLBACK_MS + 4000);
+        }, SIGNAL_FALLBACK_MS + 12000);
       });
-      peer.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); peer.reconnect(); });
+      peer.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); try { peer.reconnect(); } catch { /* ignore */ } });
       peer.on("error", err => {
-        // Private server asleep (or host sitting on the other server)?
-        // Retry once on the other server before giving up.
+        // Peer not on this server (or server asleep)? Try the other one once.
         if (!connectedRef.current && (err.type === "peer-unavailable" || err.type === "network" || err.type === "server-error" || err.type === "socket-error" || err.type === "socket-closed")) {
-          const other = signalModeRef.current === "custom" ? "public" : "custom";
-          // Only auto-retry once: if we already retried (timer cleared + mode switched), give up.
-          if (!peer._retriedSignal) {
-            console.warn(`[Signal] Join issue (${err.type}) on ${signalModeRef.current}. Retrying on ${other}…`);
-            try { peer.destroy(); } catch { /* ignore */ }
-            if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
-            signalModeRef.current = other;
-            setSignalMode(other);
-            const retryPeer = spawnPeer(undefined, wireJoin, { allowFallback: false });
-            try { retryPeer._retriedSignal = true; } catch { /* ignore */ }
-            try { peer._retriedSignal = true; } catch { /* ignore */ }
-            setPeer(retryPeer);
-            return;
-          }
+          if (switchToOtherServer(`Join issue (${err.type}) on ${signalModeRef.current}`)) return;
         }
         setIsJoining(false);
+        setJoinStatus("");
         if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
         if (!connectedRef.current) {
-          setPeerError(err.type === "peer-unavailable" ? "Room not found — check the 6-digit code or ask host to re-create (host must stay on the waiting screen)." : `Join failed: ${err.type}`);
+          setPeerError(err.type === "peer-unavailable" ? "Room not found on either server — check the 6-digit code or ask host to re-create (host must stay on the waiting screen)." : `Join failed: ${err.type}`);
           // Stay on join screen so user can retry a plain code without retyping.
         }
       });
@@ -712,13 +744,15 @@ export function usePeer({ onTransferComplete } = {}) {
 
     try { hostPeersRef.current.forEach((p) => { try { p.destroy(); } catch { /* ignore */ } }); } catch { /* ignore */ }
     hostPeersRef.current = [];
-    try { peerRef.current?.destroy(); } catch { /* ignore */ }
+    try {     peerRef.current?.destroy(); } catch { /* ignore */ }
     setPeer(null);
     setConnected(false);
     setMessages([]);
     setTransfers([]);
     setFileQueue([]);
     setIsJoining(false);
+    setJoinStatus("");
+    joinTriedOtherRef.current = false;
     setRoomCode("");
     setShareUrl("");
     setReconnecting(false);
@@ -961,6 +995,7 @@ export function usePeer({ onTransferComplete } = {}) {
   setupConn.current = (connection) => {
     connection.on("open", () => {
       setIsJoining(false);
+      setJoinStatus("");
       if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
       connRef.current = connection; connectedRef.current = true; setConnected(true); setScreen("room");
       reconnectCount.current = 0; setReconnecting(false); lastReconnectMsgRef.current = "";
@@ -1031,7 +1066,7 @@ export function usePeer({ onTransferComplete } = {}) {
   }, []);
 
   return {
-    screen, setScreen, roomCode, joinCode, connected, messages, transfers, fileQueue, shareUrl, peerError, libsReady, reconnecting, isJoining,
+    screen, setScreen, roomCode, joinCode, connected, messages, transfers, fileQueue, shareUrl, peerError, libsReady, reconnecting, isJoining, joinStatus,
     connStats, signalMode, maxParallel, setMaxParallel, peerTyping, completedBlobs,
     setJoinCode, createRoom, joinRoom, queueFile, leaveRoom, setTransfers, setPeerError,
     sendChat, sendTyping, downloadAgain,

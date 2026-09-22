@@ -27,7 +27,7 @@ function syncSigFromInvite(text = "") {
   } catch { /* plain code, nothing to sync */ }
 }
 
-export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peerError, libsReady, isJoining }) {
+export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peerError, libsReady, isJoining, joinStatus }) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [detectorSupported] = useState(() => typeof window !== "undefined" && "BarcodeDetector" in window);
@@ -181,6 +181,7 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
           <div style={s.hint}>🔒 Direct encrypted connection · Nothing uploaded</div>
         </div>
 
+        {isJoining && joinStatus && <div className="warn">{joinStatus}</div>}
         {peerError && <div className="err">{peerError}</div>}
       </div>
     </div>
