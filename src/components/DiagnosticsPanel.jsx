@@ -34,12 +34,24 @@ export default function DiagnosticsPanel({ connected, connStats, signalMode }) {
       ? `↑ ${formatBytes(connStats.bytesSent || 0)} ↓ ${formatBytes(connStats.bytesReceived || 0)}` : "--", tone: null },
   ];
 
+  const copyDebug = () => {
+    const payload = {
+      ts: new Date().toISOString(),
+      signalMode: connStats.signaling || signalMode,
+      ...connStats,
+    };
+    navigator.clipboard?.writeText(JSON.stringify(payload, null, 2)).catch(() => {});
+  };
+
   return (
     <div style={s.wrap} className="glass-sm">
       <div style={s.head}>
         <span style={s.title}>Connection</span>
-        <span style={isRelay ? s.badgeRelay : s.badgeDirect}>
-          {isRelay ? "↻ relayed" : "⇄ direct P2P"}
+        <span style={{ display: "flex", gap: "0.35rem", alignItems: "center" }}>
+          <button onClick={copyDebug} title="Copy debug JSON for bug reports" style={s.copyBtn}>⧉ Debug</button>
+          <span style={isRelay ? s.badgeRelay : s.badgeDirect}>
+            {isRelay ? "↻ relayed" : "⇄ direct P2P"}
+          </span>
         </span>
       </div>
       <div style={s.grid}>
@@ -50,15 +62,17 @@ export default function DiagnosticsPanel({ connected, connStats, signalMode }) {
           </div>
         ))}
       </div>
-      {isRelay && (
-        <div style={s.note}>Relayed via TURN — slower than direct, but works behind strict NAT.</div>
-      )}
+      <div style={s.note}>
+        {isRelay
+          ? "↻ Relayed via TURN — slower than direct, but works on office / college WiFi & mobile data."
+          : "⇄ Direct P2P — fastest path. If slow, both peers should stay on the same network."}
+      </div>
     </div>
   );
 }
 
 const s = {
-  wrap: { borderRadius: 12, padding: "0.7rem 0.85rem", background: "var(--surface)", border: "1px solid var(--border)", flexShrink: 0 },
+  wrap: { borderRadius: 16, padding: "0.75rem 0.9rem", background: "var(--surface)", border: "1px solid var(--border)", flexShrink: 0 },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" },
   title: { fontSize: "0.72rem", fontWeight: 600, color: "var(--text-2)" },
   badgeDirect: { fontSize: "0.6rem", fontWeight: 700, color: "var(--green)", background: "#f0f7f3", borderRadius: 20, padding: "0.12rem 0.55rem" },
@@ -71,5 +85,6 @@ const s = {
   vGreen: { color: "var(--green)", fontWeight: 700 },
   vAmber: { color: "var(--amber)", fontWeight: 700 },
   hint: { fontSize: "0.68rem", color: "var(--text-dim)" },
-  note: { fontSize: "0.62rem", color: "var(--text-muted)", marginTop: "0.45rem", lineHeight: 1.5 },
+  note: { fontSize: "0.66rem", color: "var(--text-muted)", marginTop: "0.5rem", lineHeight: 1.55, background: "var(--surface-hover)", borderRadius: 8, padding: "0.45rem 0.6rem" },
+  copyBtn: { background: "var(--surface-hover)", border: "1px solid var(--border)", borderRadius: 999, padding: "0.15rem 0.55rem", fontSize: "0.6rem", fontWeight: 700, cursor: "pointer", color: "var(--text-muted)", fontFamily: "inherit" },
 };

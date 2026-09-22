@@ -91,7 +91,7 @@ export default function AnalyticsPanel({ history, transfers }) {
 }
 
 const s = {
-  wrap: { borderRadius: 12, padding: "0.7rem 0.85rem", background: "var(--surface)", border: "1px solid var(--border)", flexShrink: 0 },
+  wrap: { borderRadius: 16, padding: "0.75rem 0.9rem", background: "var(--surface)", border: "1px solid var(--border)", flexShrink: 0 },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.55rem" },
   title: { fontSize: "0.72rem", fontWeight: 600, color: "var(--text-2)" },
   count: { fontSize: "0.6rem", color: "var(--text-dim)", fontFamily: "'Geist Mono', monospace" },

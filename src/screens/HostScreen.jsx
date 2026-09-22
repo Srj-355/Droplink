@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import Branding from "../components/Branding";
@@ -11,28 +10,23 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
   const [qrReady, setQrReady] = useState(false);
 
   useEffect(() => {
-    // shareUrl may be empty on first render — wait until it's populated
     if (!shareUrl) return;
-
     let retries = 0;
     const MAX_RETRIES = 20;
-
     const render = () => {
       if (!canvasRef.current) {
         if (++retries > MAX_RETRIES) { console.warn("QR canvas not available after max retries"); return; }
-        // Canvas not in DOM yet — retry on next frame
         requestAnimationFrame(render);
         return;
       }
       QRCode.toCanvas(canvasRef.current, shareUrl, {
-        width: 160,
+        width: 168,
         margin: 1,
-        color: { dark: "#0f172a", light: "#ffffff" },
+        color: { dark: "#050505", light: "#ffffff" },
       })
         .then(() => setQrReady(true))
         .catch((err) => console.warn("QR render failed:", err));
     };
-
     render();
   }, [shareUrl]);
 
@@ -44,49 +38,60 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
   return (
     <div className="setup">
       <EssenceField />
-      <div className="glass setup-card">
+      <div className="glass setup-card" style={{ maxWidth: 460 }}>
         <div className="setup-head">
-          <Branding onGoHome={onLeave} />
-          <button className="back-btn back-btn-danger" onClick={onLeave}>← Leave</button>
+          <Branding onGoHome={onLeave} compact />
+          <button className="back-btn back-btn-danger" onClick={onLeave}>← Cancel</button>
+        </div>
+
+        <div className="stepper">
+          <span className="step-dot done"><span className="step-num">✓</span> Create</span>
+          <span className="step-line done" />
+          <span className="step-dot active"><span className="step-num">2</span> Share</span>
+          <span className="step-line" />
+          <span className="step-dot"><span className="step-num">3</span> Transfer</span>
+        </div>
+
+        <div>
+          <div style={s.title}>Invite someone</div>
+          <div style={s.sub}>Share this code or QR — they join instantly, no account needed.</div>
         </div>
 
         {/* Room code */}
-        <div style={s.codeBox} className="glass-sm">
+        <div style={s.codeBox}>
           <div>
             <div style={s.codeLabel}>Room Code</div>
             <div style={s.codeVal}>{roomCode}</div>
           </div>
-          <button className="btn-icon" onClick={() => copy(roomCode, setCc)} title="Copy code">
-            {cc ? "✓" : "⎘"}
+          <button className="btn btn-primary" style={{ padding: "0.55rem 1rem", fontSize: "0.78rem" }} onClick={() => copy(roomCode, setCc)} title="Copy code">
+            {cc ? "✓ Copied" : "Copy"}
           </button>
         </div>
 
         {/* QR */}
         <div style={s.qrWrap}>
-          {/* Canvas always in DOM so ref is never null */}
           <div style={{ ...s.qrBox, opacity: qrReady ? 1 : 0, transition: "opacity 0.3s" }}>
             <canvas ref={canvasRef} />
           </div>
-          {/* Placeholder while QR renders */}
           {!qrReady && (
             <div style={s.qrPlaceholder}>
               <span className="dot-pulse" />
-              <span style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>Generating QR…</span>
+              <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Generating QR…</span>
             </div>
           )}
-          <span style={s.qrLabel}>Scan to join instantly</span>
+          <span style={s.qrLabel}>Scan with phone camera to join instantly</span>
         </div>
 
         {/* Share URL */}
-        <div style={s.urlRow} className="glass-sm" onClick={() => copy(shareUrl, setUc)}>
+        <div style={s.urlRow} onClick={() => copy(shareUrl, setUc)}>
           <span style={s.urlText}>{shareUrl}</span>
-          <span style={s.urlAction}>{uc ? "✓" : "Copy link"}</span>
+          <span style={s.urlAction}>{uc ? "✓ Copied" : "Copy link"}</span>
         </div>
 
         {/* Waiting */}
         <div style={s.waitRow}>
           <span className="dot-pulse" />
-          <span style={{ color: "#64748b", fontSize: "0.78rem" }}>Waiting for peer…</span>
+          <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", fontWeight: 600 }}>Waiting for peer to join…</span>
         </div>
 
         {peerError && <div className="err">{peerError}</div>}
@@ -96,33 +101,36 @@ export default function HostScreen({ roomCode, shareUrl, peerError, onLeave }) {
 }
 
 const s = {
+  title: { fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.02em" },
+  sub: { fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.55, marginTop: "0.25rem" },
   codeBox: {
-    borderRadius: 12, padding: "0.9rem 1.1rem",
+    borderRadius: 16, padding: "1rem 1.1rem",
     display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem",
-    background: "var(--bg)", border: "1px solid var(--border)",
+    background: "var(--brand-gradient-soft)", border: "1px solid var(--send-border)",
   },
-  codeLabel: { fontSize: "0.62rem", color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 },
+  codeLabel: { fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4, fontWeight: 700 },
   codeVal: {
-    fontFamily: "'Geist Mono', monospace", fontSize: "1.9rem", fontWeight: 700,
-    letterSpacing: "0.22em", color: "var(--send)",
+    fontFamily: "'Geist Mono', monospace", fontSize: "2rem", fontWeight: 700,
+    letterSpacing: "0.2em", color: "var(--primary)",
   },
-  qrWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", position: "relative" },
+  qrWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: "0.55rem", position: "relative" },
   qrBox: {
-    background: "var(--surface)", borderRadius: 14, padding: 12,
+    background: "#fff", borderRadius: 18, padding: 14,
     border: "1px solid var(--border)",
+    boxShadow: "var(--shadow-lg)",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
   qrPlaceholder: {
-    position: "absolute",
+    position: "absolute", top: 40,
     display: "flex", alignItems: "center", gap: "0.5rem",
   },
-  qrLabel: { fontSize: "0.66rem", color: "var(--text-dim)" },
+  qrLabel: { fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 },
   urlRow: {
-    borderRadius: 10, padding: "0.6rem 0.9rem",
-    display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer",
-    overflow: "hidden", background: "var(--bg)", border: "1px solid var(--border)",
+    borderRadius: 12, padding: "0.7rem 0.9rem",
+    display: "flex", alignItems: "center", gap: "0.6rem", cursor: "pointer",
+    overflow: "hidden", background: "var(--surface-hover)", border: "1px solid var(--border)",
   },
-  urlText: { flex: 1, fontSize: "0.68rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
-  urlAction: { fontSize: "0.68rem", color: "var(--send)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 600 },
-  waitRow: { display: "flex", alignItems: "center", gap: "0.6rem" },
+  urlText: { flex: 1, fontSize: "0.72rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, fontFamily: "'Geist Mono', monospace" },
+  urlAction: { fontSize: "0.75rem", color: "#fff", background: "var(--text)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700, padding: "0.35rem 0.75rem", borderRadius: 999 },
+  waitRow: { display: "flex", alignItems: "center", gap: "0.6rem", background: "var(--surface-hover)", borderRadius: 12, padding: "0.65rem 0.9rem" },
 };

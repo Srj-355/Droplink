@@ -57,9 +57,9 @@ export default function SpeedGraph({ transfers }) {
         <span style={s.peak}>peak {formatSpeed(peak)}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={s.svg} preserveAspectRatio="none">
-        {samples.length > 1 && <polygon points={area} fill="rgba(194,65,12,0.12)" stroke="none" />}
+        {samples.length > 1 && <polygon points={area} fill="rgba(24,119,242,0.14)" stroke="none" />}
         {samples.length > 1 && (
-          <polyline points={line} fill="none" stroke="var(--send)" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          <polyline points={line} fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         )}
         {samples.length <= 1 && (
           <text x="50" y="20" textAnchor="middle" fontSize="5" fill="var(--text-dim)">
@@ -76,7 +76,7 @@ export default function SpeedGraph({ transfers }) {
 }
 
 const s = {
-  wrap: { borderRadius: 12, padding: "0.7rem 0.85rem", background: "var(--surface)", border: "1px solid var(--border)", flexShrink: 0 },
+  wrap: { borderRadius: 16, padding: "0.75rem 0.9rem", background: "var(--surface)", border: "1px solid var(--border)", flexShrink: 0 },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.3rem" },
   title: { fontSize: "0.72rem", fontWeight: 600, color: "var(--text-2)" },
   live: { fontSize: "0.62rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.3rem" },
@@ -84,6 +84,6 @@ const s = {
   bigRow: { display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.35rem" },
   big: { fontSize: "1.05rem", fontWeight: 700, color: "var(--text)", fontFamily: "'Geist Mono', monospace" },
   peak: { fontSize: "0.62rem", color: "var(--text-dim)", fontFamily: "'Geist Mono', monospace" },
-  svg: { width: "100%", height: 64, display: "block", background: "var(--bg)", borderRadius: 8, border: "1px solid var(--border)" },
+  svg: { width: "100%", height: 64, display: "block", background: "var(--surface-hover)", borderRadius: 12, border: "1px solid var(--border)" },
   scale: { display: "flex", justifyContent: "space-between", fontSize: "0.58rem", color: "var(--text-dim)", marginTop: "0.25rem", fontFamily: "'Geist Mono', monospace" },
 };

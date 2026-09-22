@@ -8,47 +8,8 @@ import HostScreen from "./screens/HostScreen";
 import JoinScreen from "./screens/JoinScreen";
 import RoomScreen from "./screens/RoomScreen";
 import FAQScreen from "./screens/FAQScreen";
+import Branding from "./components/Branding";
 import { useState } from "react";
-
-const footerStyle = {
-  position: "fixed",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  padding: "0.8rem",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "0.2rem",
-  zIndex: 100,
-  pointerEvents: "none",
-  background: "linear-gradient(to top, var(--bg), transparent)",
-};
-
-const footerContentStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "0.8rem",
-  pointerEvents: "auto",
-};
-
-const footerLinkStyle = {
-  fontSize: "0.65rem",
-  fontWeight: 700,
-  color: "var(--text-dim)",
-  cursor: "pointer",
-  transition: "all 0.2s",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  padding: "0.2rem 0.5rem",
-};
-
-const footerCopyrightStyle = {
-  fontSize: "0.55rem",
-  color: "var(--text-dim)",
-  opacity: 0.6,
-  fontWeight: 500,
-};
 
 export default function App() {
   const {
@@ -77,11 +38,12 @@ export default function App() {
     peerError, setPeerError,
     libsReady, isJoining,
     createRoom, joinRoom,
-    queueFile, sendChat, leaveRoom,
-    pauseTransfer, resumeTransfer,
-    cancelTransfer, cancelReceive,
+    queueFile, sendChat, sendTyping, leaveRoom,
+    pauseTransfer, resumeTransfer, pauseReceive, resumeReceive,
+    cancelTransfer, cancelReceive, retryTransfer, downloadAgain,
     removeFromQueue,
-    connStats, signalMode,
+    connStats, signalMode, maxParallel, setMaxParallel,
+    peerTyping, completedBlobs,
   } = usePeer({ onTransferComplete });
 
   // Keep ref in sync with roomCode state
@@ -96,10 +58,40 @@ export default function App() {
 
   return (
     <>
-      {/* Optimized background - CSS gradients only, no orb divs */}
       <div className="bg-wrap" />
 
-      <div className="layer" style={{ paddingBottom: "3.5rem" }}>
+      {/* ── App shell topbar ── */}
+      <header className="app-topbar">
+        <div className="app-topbar-inner">
+          <Branding onGoHome={leaveRoom} compact />
+          <div className="app-topbar-center">
+            {screen === "room" && roomCode && (
+              <>
+                <span
+                  className="room-code-badge"
+                  title="Copy room code"
+                  onClick={() => navigator.clipboard?.writeText(roomCode).catch(() => {})}
+                >
+                  #{roomCode}
+                </span>
+                <span className={`status-badge ${reconnecting ? "retry" : connected ? "live" : "wait"}`} style={{ boxShadow: "none" }}>
+                  <span className={connected && !reconnecting ? "dot-live" : "dot-pulse"} />
+                  {reconnecting ? "Reconnecting" : connected ? "Live" : "Connecting"}
+                </span>
+              </>
+            )}
+            {screen === "host" && roomCode && (
+              <span className="room-code-badge">#{roomCode} · waiting for peer</span>
+            )}
+          </div>
+          <div className="app-topbar-right">
+            <button className="topbar-link" onClick={() => navigateTo("faq")}>How it works</button>
+            <button className="topbar-link" onClick={() => navigateTo("faq")}>FAQ</button>
+          </div>
+        </div>
+      </header>
+
+      <div className="layer" style={{ paddingBottom: "2.5rem" }}>
         {screen === "home" && (
           <HomeScreen
             onHost={createRoom}
@@ -137,6 +129,7 @@ export default function App() {
             connected={connected}
             reconnecting={reconnecting}
             messages={messages}
+            peerTyping={peerTyping}
             transfers={transfers}
             fileQueue={fileQueue}
             peerError={peerError}
@@ -145,14 +138,22 @@ export default function App() {
             rooms={rooms}
             connStats={connStats}
             signalMode={signalMode}
+            maxParallel={maxParallel}
+            completedBlobs={completedBlobs}
             onQueueFile={queueFile}
             onSendChat={sendChat}
+            onTyping={sendTyping}
             onLeave={leaveRoom}
             onClearTransfers={() => setTransfers([])}
             onPause={pauseTransfer}
             onResume={resumeTransfer}
+            onPauseReceive={pauseReceive}
+            onResumeReceive={resumeReceive}
             onCancelTransfer={cancelTransfer}
             onCancelReceive={cancelReceive}
+            onRetry={retryTransfer}
+            onDownloadAgain={downloadAgain}
+            onParallelChange={setMaxParallel}
             onRemoveFromQueue={removeFromQueue}
             onClearHistory={clearHistory}
             onClearRoomHistory={clearRoomHistory}
@@ -166,13 +167,10 @@ export default function App() {
 
       </div>
 
-      {screen !== "faq" && (
-        <footer style={footerStyle}>
-          <div style={footerContentStyle}>
-            <span style={footerLinkStyle} onClick={() => navigateTo("faq")}>FAQ</span>
-          </div>
-          <div style={footerCopyrightStyle}>
-            © 2026 droplink
+      {screen !== "room" && (
+        <footer style={{ textAlign: "center", padding: "0 1rem 1.25rem", position: "relative", zIndex: 1 }}>
+          <div style={{ fontSize: "0.72rem", color: "var(--text-dim)", fontWeight: 500 }}>
+            © 2026 droplink · Private peer-to-peer sharing · No uploads, no accounts
           </div>
         </footer>
       )}

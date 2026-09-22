@@ -20,8 +20,8 @@ export default function EssenceField() {
         this.vx = (Math.random() - 0.5) * 1.5;
         this.vy = (Math.random() - 0.5) * 1.5;
         this.size = Math.random() * (isMobile ? 2 : 3) + 1;
-        this.color = ["#c2410c", "#0d9488", "#7a7670", "#a39e97"][Math.floor(Math.random() * 4)];
-        this.alpha = Math.random() * 0.3 + 0.15;
+        this.color = ["#1877F2", "#7B2FF7", "#00C6A2", "#BCC0C4"][Math.floor(Math.random() * 4)];
+        this.alpha = Math.random() * 0.22 + 0.1;
         this.pulse = Math.random() * Math.PI * 2;
       }
       update() {

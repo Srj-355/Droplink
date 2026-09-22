@@ -29,7 +29,7 @@ export default function QueuePanel({ queue, onRemove }) {
 }
 
 const s = {
-  wrap: { borderRadius: 12, padding: "0.7rem 0.85rem", flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)" },
+  wrap: { borderRadius: 16, padding: "0.75rem 0.9rem", flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)" },
   head: { display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.55rem" },
   title: { fontSize: "0.74rem", fontWeight: 600, color: "var(--text-2)", display: "flex", alignItems: "center", gap: "0.35rem" },
   badge: {

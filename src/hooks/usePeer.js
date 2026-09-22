@@ -111,6 +111,9 @@ export function usePeer({ onTransferComplete } = {}) {
   const [isJoining, setIsJoining] = useState(false);
   const [connStats, setConnStats] = useState(null);
   const [signalMode, setSignalMode] = useState("custom");
+  const [maxParallel, setMaxParallel] = useState(1);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const [completedBlobs, setCompletedBlobs] = useState({});
 
   const connRef = useRef(null);
   const dcRef = useRef(null);
@@ -120,8 +123,47 @@ export function usePeer({ onTransferComplete } = {}) {
   const sendStates = useRef({});
   const speedTrackers = useRef({});
   const receiveBuffers = useRef({});
-  const activeFileId = useRef(null);
+  const activeFileIds = useRef(new Set());
   const fileQueueRef = useRef([]);
+  const maxParallelRef = useRef(1);
+  const completedBlobsRef = useRef({});
+  const peerTypingTimeout = useRef(null);
+  const typingThrottle = useRef(0);
+
+  useEffect(() => { maxParallelRef.current = maxParallel; }, [maxParallel]);
+
+  const playDoneSound = useCallback(() => {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = "sine"; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.12, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      o.start(); o.stop(ctx.currentTime + 0.36);
+      setTimeout(() => ctx.close().catch(() => {}), 500);
+    } catch { /* audio optional */ }
+  }, []);
+
+  const notifyDone = useCallback((title, body) => {
+    try {
+      playDoneSound();
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
+    } catch { /* ignore */ }
+  }, [playDoneSound]);
+
+  const requestNotifyPermission = useCallback(() => {
+    try {
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch { /* ignore */ }
+  }, []);
   const reconnectCount = useRef(0);
   const intentionalLeave = useRef(false);
   const targetRoomCode = useRef("");
@@ -141,9 +183,16 @@ export function usePeer({ onTransferComplete } = {}) {
   const signalTimerRef = useRef(null);
   const statsIntervalRef = useRef(null);
 
-  const addMessage = useCallback((msg) =>
-    setMessages((prev) => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }])
-    , []);
+  const addMessage = useCallback((msg) => {
+    const id = msg.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // dedup by id (stable) — fixes fragile text+time matching
+    if (messagesRef.current.some((m) => m.id === id)) return id;
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === id)) return prev;
+      return [...prev, { ...msg, id }];
+    });
+    return id;
+  }, []);
 
   const updateTransfer = useCallback((fileId, patch) =>
     setTransfers((prev) => prev.map((t) => t.id === fileId ? { ...t, ...patch } : t))
@@ -262,13 +311,17 @@ export function usePeer({ onTransferComplete } = {}) {
   }, [addMessage]);
 
   const _advanceQueue = useCallback(() => {
-    if (activeFileId.current || !connectedRef.current) return;
-    const queue = fileQueueRef.current;
-    const next = queue.find((q) => q.status === "queued");
-    if (!next) return;
-    setFileQueue((prev) => prev.map((q) => q.id === next.id ? { ...q, status: "sending" } : q));
-    activeFileId.current = next.id;
-    _sendFileInternal(next.file, next.id);
+    if (!connectedRef.current) return;
+    const limit = maxParallelRef.current || 1;
+    // start up to `limit` concurrent sends
+    for (let i = activeFileIds.current.size; i < limit; i++) {
+      const queue = fileQueueRef.current;
+      const next = queue.find((q) => q.status === "queued" && !activeFileIds.current.has(q.id));
+      if (!next) return;
+      setFileQueue((prev) => prev.map((q) => q.id === next.id ? { ...q, status: "sending" } : q));
+      activeFileIds.current.add(next.id);
+      _sendFileInternal(next.file, next.id);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const _finalizeSender = useCallback((fileId, state) => {
@@ -305,8 +358,14 @@ export function usePeer({ onTransferComplete } = {}) {
         }));
       }
     } catch (err) { console.error("Error in _finalizeSender:", err); }
-    finally { delete sendStates.current[fileId]; delete speedTrackers.current[fileId]; activeFileId.current = null; _advanceQueueRef.current?.(); }
-  }, [onTransferComplete]);
+    finally {
+      delete sendStates.current[fileId]; delete speedTrackers.current[fileId];
+      activeFileIds.current.delete(fileId);
+      setFileQueue((prev) => prev.map((q) => q.id === fileId ? { ...q, status: "done" } : q));
+      notifyDone("File sent", `"${state?.fileName || "file"}" delivered`);
+      _advanceQueueRef.current?.();
+    }
+  }, [onTransferComplete, notifyDone]);
 
   const _checkCompletion = useCallback((fileId) => {
     const state = sendStates.current[fileId];
@@ -444,7 +503,13 @@ export function usePeer({ onTransferComplete } = {}) {
         if (st && !st.aborted && !st.ackedIndexes.has(index)) {
           console.warn(`[Transfer] No ACK for chunk ${index}. Retry ${st.retryCounts[index] || 0}/${CHUNK_RETRY_LIMIT}`);
           if ((st.retryCounts[index] || 0) < CHUNK_RETRY_LIMIT) { st.retryCounts[index] = (st.retryCounts[index] || 0) + 1; sendChunk(index, buffer); }
-          else { updateTransfer(fileId, { status: "error" }); }
+          else {
+            updateTransfer(fileId, { status: "error" });
+            setFileQueue((prev) => prev.map((q) => q.id === fileId ? { ...q, status: "error" } : q));
+            st.aborted = true;
+            activeFileIds.current.delete(fileId);
+            setTimeout(() => _advanceQueueRef.current?.(), 200);
+          }
         }
       }, CHUNK_ACK_TIMEOUT);
       console.log(`[Transfer] Sending chunk ${index}/${totalChunks - 1} (${data.byteLength} bytes)`);
@@ -524,21 +589,23 @@ export function usePeer({ onTransferComplete } = {}) {
     if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
     if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
     if (statsIntervalRef.current) { clearInterval(statsIntervalRef.current); statsIntervalRef.current = null; }
-    signalModeRef.current = "custom"; setSignalMode("custom"); // fresh attempt on private server next time
+    if (peerTypingTimeout.current) { clearTimeout(peerTypingTimeout.current); peerTypingTimeout.current = null; }
+    signalModeRef.current = "custom"; setSignalMode("custom");
     setConnStats(null);
-    Object.values(sendStates.current).forEach(s => { s.aborted = true; Object.values(s.ackTimers).forEach(clearTimeout); });
+    setPeerTyping(false);
+    Object.values(sendStates.current).forEach(s => { s.aborted = true; Object.values(s.ackTimers || {}).forEach(clearTimeout); });
+    Object.values(completedBlobsRef.current).forEach((b) => { try { URL.revokeObjectURL(b.url); } catch { /* ignore */ } });
+    completedBlobsRef.current = {}; setCompletedBlobs({});
 
-    // Clear refs
     sendStates.current = {};
     speedTrackers.current = {};
     receiveBuffers.current = {};
-    activeFileId.current = null;
+    activeFileIds.current.clear();
     fileQueueRef.current = [];
     dataQueue.current = [];
     reconnectCount.current = 0;
     lastReconnectMsgRef.current = "";
 
-    // Clear state
     peerRef.current?.destroy();
     setPeer(null);
     setConnected(false);
@@ -554,13 +621,45 @@ export function usePeer({ onTransferComplete } = {}) {
     window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
-  const pauseTransfer = useCallback((id) => { const s = sendStates.current[id]; if (s) s.paused = true; }, []);
-  const resumeTransfer = useCallback((id) => { const s = sendStates.current[id]; if (s) s.paused = false; }, []);
-  const cancelTransfer = useCallback((id) => {
-    const s = sendStates.current[id]; if (s) { s.aborted = true; }
-    updateTransfer(id, { status: "cancelled" });
-    connRef.current?.send(encodeJSON({ type: "cancel-transfer", fileId: id }));
+  const pauseTransfer = useCallback((id) => {
+    const s = sendStates.current[id]; if (s) s.paused = true;
+    updateTransfer(id, { status: "paused", pausedByPeer: false });
+    try { connRef.current?.send(encodeJSON({ type: "pause-transfer", fileId: id })); } catch { /* ignore */ }
   }, [updateTransfer]);
+  const resumeTransfer = useCallback((id) => {
+    const s = sendStates.current[id]; if (s) s.paused = false;
+    updateTransfer(id, { status: "sending", pausedByPeer: false });
+    try { connRef.current?.send(encodeJSON({ type: "resume-transfer", fileId: id })); } catch { /* ignore */ }
+  }, [updateTransfer]);
+  // Receiver-initiated pause/resume — asks sender to stop/start via protocol
+  const pauseReceive = useCallback((id) => {
+    updateTransfer(id, { status: "paused", pausedByPeer: false });
+    try { connRef.current?.send(encodeJSON({ type: "pause-transfer", fileId: id })); } catch { /* ignore */ }
+  }, [updateTransfer]);
+  const resumeReceive = useCallback((id) => {
+    updateTransfer(id, { status: "receiving", pausedByPeer: false });
+    try { connRef.current?.send(encodeJSON({ type: "resume-transfer", fileId: id })); } catch { /* ignore */ }
+  }, [updateTransfer]);
+  const cancelTransfer = useCallback((id) => {
+    const s = sendStates.current[id];
+    if (s) { s.aborted = true; Object.values(s.ackTimers || {}).forEach(clearTimeout); }
+    activeFileIds.current.delete(id);
+    setFileQueue((prev) => prev.map((q) => q.id === id ? { ...q, status: "cancelled" } : q));
+    updateTransfer(id, { status: "cancelled" });
+    try { connRef.current?.send(encodeJSON({ type: "cancel-transfer", fileId: id })); } catch { /* ignore */ }
+    _advanceQueueRef.current?.();
+  }, [updateTransfer]);
+  const retryTransfer = useCallback((transferId) => {
+    const q = fileQueueRef.current.find((x) => x.id === transferId);
+    const qFile = q?.file;
+    if (!qFile) return null;
+    const newId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setFileQueue((prev) => [...prev, { id: newId, file: qFile, status: "queued", name: qFile.name, size: qFile.size }]);
+    _advanceQueueRef.current?.();
+    // kick queue in case connection ready
+    setTimeout(() => _advanceQueueRef.current?.(), 50);
+    return newId;
+  }, []);
 
   useEffect(() => { connectedRef.current = connected; }, [connected]);
   useEffect(() => { fileQueueRef.current = fileQueue; }, [fileQueue]);
@@ -576,7 +675,7 @@ export function usePeer({ onTransferComplete } = {}) {
     window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h);
   }, []);
   useEffect(() => { _advanceQueueRef.current = _advanceQueue; }, [_advanceQueue]);
-  useEffect(() => { if (connected && !activeFileId.current) _advanceQueue(); }, [fileQueue, connected, _advanceQueue]);
+  useEffect(() => { if (connected) _advanceQueue(); }, [fileQueue, connected, maxParallel, _advanceQueue]);
   useEffect(() => { leaveRoomRef.current = leaveRoom; }, [leaveRoom]);
 
   // ── 2. Background Handlers ───────────────────────────────────────────────────
@@ -597,38 +696,71 @@ export function usePeer({ onTransferComplete } = {}) {
     buf.flushing = false;
   };
 
+  const cacheCompletedBlob = useCallback((fileId, blob, name) => {
+    try {
+      const url = URL.createObjectURL(blob);
+      completedBlobsRef.current[fileId] = { url, name, blob };
+      setCompletedBlobs((prev) => ({ ...prev, [fileId]: { url, name } }));
+      return url;
+    } catch { return null; }
+  }, []);
+
   const finishBuffer = (fileId, buf) => {
-    const blob = new Blob(buf.chunks); const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), { href: url, download: buf.meta.name });
-    a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const blob = new Blob(buf.chunks);
+    const url = cacheCompletedBlob(fileId, blob, buf.meta.name);
+    if (url) {
+      const a = Object.assign(document.createElement("a"), { href: url, download: buf.meta.name });
+      document.body.appendChild(a); a.click(); a.remove();
+      // keep URL for "Download again" — revoked on leaveRoom
+    }
     updateTransfer(fileId, { progress: 100, status: "done" });
     addMessage({ type: "system", text: `✅ Received "${buf.meta.name}"` });
+    notifyDone("File received", `"${buf.meta.name}" — tap to download again from Files`);
 
-    const ratio = buf.rawBytes > 0 ? (buf.compBytes / buf.rawBytes) : 1;
-    const savingsPercent = ((1 - ratio) * 100).toFixed(1);
-    const savingsBytes = buf.rawBytes - buf.compBytes;
-
-    console.log(`[Transfer] ✅ Received "${buf.meta.name}"`);
-    console.log(`  └─ Size: ${formatBytes(buf.rawBytes)} (Decompressed) ← ${formatBytes(buf.compBytes)} (On-wire)`);
-    if (savingsPercent > 0) {
-      console.log(`  └─ Savings: ${formatBytes(savingsBytes)} (${savingsPercent}%)`);
-    }
+    const savingsBytes = (buf.rawBytes || 0) - (buf.compBytes || 0);
 
     onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null, compressed: Boolean(buf.meta.compressed), rawBytes: buf.rawBytes, compBytes: buf.compBytes, savedBytes: savingsBytes });
     delete receiveBuffers.current[fileId];
   };
 
+  const finishStream = useCallback((fileId, buf) => {
+    updateTransfer(fileId, { progress: 100, status: "done" });
+    addMessage({ type: "system", text: `✅ Received "${buf.meta.name}" (saved to disk)` });
+    notifyDone("File received", `"${buf.meta.name}" saved to disk`);
+    const _saved = (buf.rawBytes || 0) - (buf.compBytes || 0);
+    onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null, compressed: Boolean(buf.meta.compressed), rawBytes: buf.rawBytes, compBytes: buf.compBytes, savedBytes: _saved });
+    delete receiveBuffers.current[fileId];
+  }, [notifyDone, onTransferComplete, updateTransfer, addMessage]);
+
   const _handleDataInternal = async (raw) => {
     const frame = decodeFrame(raw); if (!frame) return;
     if (frame.type === "json") {
       const { data } = frame;
-      if (data.type === "chat") addMessage({ type: "chat", text: data.text, sender: "them", time: data.time });
+      if (data.type === "chat") {
+        addMessage({ id: data.id, type: "chat", text: data.text, sender: "them", time: data.time, status: "read" });
+        // delivered ACK back to sender
+        try { connRef.current?.send(encodeJSON({ type: "chat-ack", id: data.id })); } catch { /* ignore */ }
+      }
+      if (data.type === "chat-ack") {
+        setMessages((prev) => prev.map((m) => m.id === data.id ? { ...m, status: "delivered" } : m));
+        return;
+      }
+      if (data.type === "typing") {
+        if (data.typing) {
+          setPeerTyping(true);
+          if (peerTypingTimeout.current) clearTimeout(peerTypingTimeout.current);
+          peerTypingTimeout.current = setTimeout(() => setPeerTyping(false), 3000);
+        } else {
+          if (peerTypingTimeout.current) clearTimeout(peerTypingTimeout.current);
+          setPeerTyping(false);
+        }
+        return;
+      }
       if (data.type === "sync-history") {
-        data.messages.forEach((m) => {
-          const existing = messagesRef.current.some((x) => x.text === m.text && x.time === m.time);
-          if (!existing) {
-            addMessage({ type: "chat", text: m.text, sender: m.sender === "me" ? "them" : "me", time: m.time });
-          }
+        (data.messages || []).forEach((m) => {
+          if (!m.id) return;
+          const flip = m.sender === "me" ? "them" : "me";
+          addMessage({ id: m.id, type: "chat", text: m.text, sender: flip, time: m.time, status: "read" });
         });
       }
       if (data.type === "hello") peerCompression.current = data.compression || [];
@@ -649,9 +781,34 @@ export function usePeer({ onTransferComplete } = {}) {
         _checkCompletion(data.fileId);
       }
       if (data.type === "cancel-transfer") {
-        const st = sendStates.current[data.fileId]; if (st) st.aborted = true;
+        const st = sendStates.current[data.fileId];
+        if (st) {
+          st.aborted = true;
+          Object.values(st.ackTimers || {}).forEach(clearTimeout);
+          activeFileIds.current.delete(data.fileId);
+          setFileQueue((prev) => prev.map((q) => q.id === data.fileId ? { ...q, status: "cancelled" } : q));
+          _advanceQueueRef.current?.();
+        }
+        // receiver-side cancel of our send, or sender-side cancel of our receive
+        if (receiveBuffers.current[data.fileId]) {
+          const rb = receiveBuffers.current[data.fileId];
+          if (rb.mode === "stream" && rb.writable) rb.writable.abort().catch(() => {});
+          delete receiveBuffers.current[data.fileId];
+        }
         updateTransfer(data.fileId, { status: "cancelled" });
         addMessage({ type: "system", text: "🚫 Peer cancelled transfer." });
+      }
+      if (data.type === "pause-transfer") {
+        const st = sendStates.current[data.fileId];
+        if (st) { st.paused = true; updateTransfer(data.fileId, { status: "paused", pausedByPeer: true }); }
+        else { updateTransfer(data.fileId, { status: "paused", pausedByPeer: true }); }
+        return;
+      }
+      if (data.type === "resume-transfer") {
+        const st = sendStates.current[data.fileId];
+        if (st) { st.paused = false; updateTransfer(data.fileId, { status: "sending", pausedByPeer: false }); }
+        else { updateTransfer(data.fileId, { status: "receiving", pausedByPeer: false }); }
+        return;
       }
       if (data.type === "resume-request") {
         const st = sendStates.current[data.fileId]; if (st) { st.resumeFrom = data.receivedCount; addMessage({ type: "system", text: "♻️ Resuming..." }); }
@@ -680,7 +837,7 @@ export function usePeer({ onTransferComplete } = {}) {
         buf.pendingChunks.set(index, chunk); buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
         await flushPending(fileId);
-        if (buf.received === buf.meta.totalChunks) { await buf.writable.close(); updateTransfer(fileId, { progress: 100, status: "done" }); addMessage({ type: "system", text: `✅ Received "${buf.meta.name}"` }); const _saved = (buf.rawBytes || 0) - (buf.compBytes || 0); onTransferComplete?.({ id: fileId, name: buf.meta.name, size: buf.meta.size, direction: "in", status: "done", duration: null, avgSpeed: null, compressed: Boolean(buf.meta.compressed), rawBytes: buf.rawBytes, compBytes: buf.compBytes, savedBytes: _saved }); delete receiveBuffers.current[fileId]; }
+        if (buf.received === buf.meta.totalChunks) { try { await buf.writable.close(); } catch { /* ignore */ } finishStream(fileId, buf); }
       } else {
         buf.chunks[index] = chunk; buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
@@ -696,18 +853,19 @@ export function usePeer({ onTransferComplete } = {}) {
       reconnectCount.current = 0; setReconnecting(false); lastReconnectMsgRef.current = "";
       if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
       if (backoffTimerRef.current) { clearTimeout(backoffTimerRef.current); backoffTimerRef.current = null; }
+      requestNotifyPermission();
 
       if (COMPRESSION_ENABLED && isCompressionSupported()) connection.send(encodeJSON({ type: "hello", compression: ["deflate-raw"] }));
       const dc = connection._dc || connection.dataChannel; if (dc) { try { dc.bufferedAmountLowThreshold = LOW_WATERMARK; } catch { /* ignore */ } dcRef.current = dc; }
       startStatsPolling();
       Object.entries(receiveBuffers.current).forEach(([id, b]) => { if (b.received > 0) connection.send(encodeJSON({ type: "resume-request", fileId: id, receivedCount: b.received })); });
 
-      // Sync chat history so both peers always have the full conversation
-      const chatMsgs = messagesRef.current.filter((m) => m.type === "chat");
+      // Sync chat history so both peers always have the full conversation (ids for stable dedup)
+      const chatMsgs = messagesRef.current.filter((m) => m.type === "chat" && m.id);
       if (chatMsgs.length > 0) {
         connection.send(encodeJSON({
           type: "sync-history",
-          messages: chatMsgs.map((m) => ({ text: m.text, sender: m.sender, time: m.time })),
+          messages: chatMsgs.map((m) => ({ id: m.id, text: m.text, sender: m.sender, time: m.time })),
         }));
       }
 
@@ -733,22 +891,43 @@ export function usePeer({ onTransferComplete } = {}) {
     });
   };
 
+  const sendChat = useCallback((t) => {
+    const c = connRef.current; if (!c || !t.trim()) return false;
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    try { c.send(encodeJSON({ type: "chat", id, text: t, time })); } catch { return false; }
+    addMessage({ id, type: "chat", text: t, sender: "me", time, status: "sent" });
+    // stop typing indicator
+    try { c.send(encodeJSON({ type: "typing", typing: false })); } catch { /* ignore */ }
+    return true;
+  }, [addMessage]);
+
+  const sendTyping = useCallback((typing) => {
+    const now = Date.now();
+    if (typing && now - typingThrottle.current < 1500) return;
+    if (typing) typingThrottle.current = now;
+    try { connRef.current?.send(encodeJSON({ type: "typing", typing: Boolean(typing) })); } catch { /* ignore */ }
+  }, []);
+
+  const downloadAgain = useCallback((fileId) => {
+    const entry = completedBlobsRef.current[fileId];
+    if (!entry) return false;
+    const a = Object.assign(document.createElement("a"), { href: entry.url, download: entry.name });
+    document.body.appendChild(a); a.click(); a.remove();
+    return true;
+  }, []);
+
   return {
     screen, setScreen, roomCode, joinCode, connected, messages, transfers, fileQueue, shareUrl, peerError, libsReady, reconnecting, isJoining,
-    connStats, signalMode,
+    connStats, signalMode, maxParallel, setMaxParallel, peerTyping, completedBlobs,
     setJoinCode, createRoom, joinRoom, queueFile, leaveRoom, setTransfers, setPeerError,
-    sendChat: (t) => {
-      const c = connRef.current; if (!c || !t.trim()) return false;
-      const time = new Date().toLocaleTimeString();
-      c.send(encodeJSON({ type: "chat", text: t, time }));
-      addMessage({ type: "chat", text: t, sender: "me", time }); return true;
-    },
-    pauseTransfer, resumeTransfer, cancelTransfer,
+    sendChat, sendTyping, downloadAgain,
+    pauseTransfer, resumeTransfer, pauseReceive, resumeReceive, cancelTransfer, retryTransfer,
     cancelReceive: (id) => {
       const buf = receiveBuffers.current[id]; if (buf?.mode === "stream" && buf.writable) buf.writable.abort().catch(() => { });
       delete receiveBuffers.current[id]; updateTransfer(id, { status: "cancelled" });
-      connRef.current?.send(encodeJSON({ type: "cancel-transfer", fileId: id }));
+      try { connRef.current?.send(encodeJSON({ type: "cancel-transfer", fileId: id })); } catch { /* ignore */ }
     },
-    removeFromQueue: (id) => { if (activeFileId.current !== id) setFileQueue(prev => prev.filter(q => q.id !== id)); }
+    removeFromQueue: (id) => { if (!activeFileIds.current.has(id)) setFileQueue(prev => prev.filter(q => q.id !== id)); }
   };
 }
