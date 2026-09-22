@@ -77,18 +77,18 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel,
           {active && (
             <div style={s.actions}>
               {isPaused ? (
-                <button className="btn-icon" title="Resume" onClick={() => onResume?.(t.id)} style={s.btnGreen}>▶</button>
+                <button className="btn-icon" title="Resume" aria-label="Resume transfer" onClick={() => onResume?.(t.id)} style={s.btnGreen}>▶</button>
               ) : (
-                <button className="btn-icon" title={isOut ? "Pause sending" : "Ask sender to pause"} onClick={() => onPause?.(t.id)}>
+                <button className="btn-icon" title={isOut ? "Pause sending" : "Ask sender to pause"} aria-label={isOut ? "Pause sending" : "Ask sender to pause"} onClick={() => onPause?.(t.id)}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
                 </button>
               )}
-              <button className="btn-icon" title="Cancel" onClick={() => onCancel?.(t.id)} style={s.btnRed}>✕</button>
+              <button className="btn-icon" title="Cancel transfer" aria-label="Cancel transfer" onClick={() => onCancel?.(t.id)} style={s.btnRed}>✕</button>
             </div>
           )}
 
           {failed && isOut && (
-            <button className="btn btn-primary" style={{ padding: "0.35rem 0.8rem", fontSize: "0.7rem" }} onClick={() => onRetry?.(t.id)} title="Re-queue this file">
+            <button className="btn btn-primary" style={{ padding: "0.45rem 0.9rem", fontSize: "0.72rem", minHeight: 36 }} onClick={() => onRetry?.(t.id)} title="Re-queue this file" aria-label="Retry transfer">
               ↻ Retry
             </button>
           )}
@@ -97,7 +97,7 @@ export default function TransferItem({ transfer: t, onPause, onResume, onCancel,
           )}
 
           {isDone && !isOut && canDownloadAgain && (
-            <button className="btn btn-outline" style={{ padding: "0.35rem 0.8rem", fontSize: "0.7rem", borderRadius: 999 }} onClick={() => onDownloadAgain?.(t.id)} title="Save this file again">
+            <button className="btn btn-outline" style={{ padding: "0.45rem 0.9rem", fontSize: "0.72rem", borderRadius: 999, minHeight: 36 }} onClick={() => onDownloadAgain?.(t.id)} title="Save this file again" aria-label="Download file again">
               ⬇ Save again
             </button>
           )}

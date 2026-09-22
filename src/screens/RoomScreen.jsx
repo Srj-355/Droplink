@@ -8,6 +8,14 @@ import SpeedGraph from "../components/SpeedGraph";
 import DiagnosticsPanel from "../components/DiagnosticsPanel";
 import AnalyticsPanel from "../components/AnalyticsPanel";
 import { formatBytes } from "../constants";
+import EmptyState from "../components/EmptyState";
+
+const I = {
+  files: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>),
+  history: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5" /><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" /><path d="M12 7v5l4 2" /></svg>),
+  stats: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>),
+  chat: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>),
+};
 
 function useTotalProgress(transfers, fileQueue) {
   return useMemo(() => {
@@ -106,20 +114,23 @@ export default function RoomScreen({
           <button
             className={`tab-btn${tab === "transfers" ? " active" : ""}`}
             onClick={() => setTab("transfers")}
+            aria-label="Show files"
           >
-            📁 Files {transfers.length > 0 && `· ${transfers.length}`}
+            <span style={s.tabIcon}>{I.files}</span> Files {transfers.length > 0 && `· ${transfers.length}`}
           </button>
           <button
             className={`tab-btn${tab === "history" ? " active" : ""}`}
             onClick={() => setTab("history")}
+            aria-label="Show history"
           >
-            🕘 History
+            <span style={s.tabIcon}>{I.history}</span> History
           </button>
           <button
             className={`tab-btn${tab === "insights" ? " active" : ""}`}
             onClick={() => setTab("insights")}
+            aria-label="Show stats"
           >
-            📊 Stats
+            <span style={s.tabIcon}>{I.stats}</span> Stats
           </button>
         </div>
         {tab === "transfers" && transfers.length > 0 && (
@@ -137,10 +148,7 @@ export default function RoomScreen({
         {tab === "transfers" && (
           <div style={s.list}>
             {transfers.length === 0 && (
-              <div className="empty-hint">
-                <div className="empty-illust">📂</div>
-                No transfers yet.<br />Drop files above to get started.
-              </div>
+              <EmptyState icon="📂" title="No transfers yet" sub="Drop files above to get started." />
             )}
             {[...transfers].reverse().map((t) => (
               <TransferItem
@@ -185,7 +193,7 @@ export default function RoomScreen({
     <div className="room-wrap">
 
       <div className="room-header">
-        <div className="room-header-card" title={headerTooltip}>
+        <div className="room-header-card room-header-main" title={headerTooltip}>
           <div className="avatar-stack">
             <span className="avatar me">Y</span>
             <span className={`avatar ${connected ? "peer" : "off"}`}>{connected ? "P" : "…"}</span>
@@ -194,7 +202,7 @@ export default function RoomScreen({
             <span style={{ fontSize: "0.82rem", fontWeight: 800, letterSpacing: "-0.01em" }}>
               Room {roomCode ? `#${roomCode}` : ""}
             </span>
-            <span style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 600 }}>
+            <span className="room-header-sub" style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 600 }}>
               {reconnecting ? "Reconnecting…" : connected ? "2 online · encrypted" : "Waiting for peer…"}
             </span>
           </div>
@@ -229,7 +237,8 @@ export default function RoomScreen({
           <button
             className="btn btn-outline btn-leave"
             onClick={onLeave}
-            style={{ fontSize: "0.76rem", borderRadius: 999 }}
+            aria-label="Leave room"
+            style={{ fontSize: "0.76rem", borderRadius: 999, minHeight: 40 }}
           >
             Leave
           </button>
@@ -241,14 +250,16 @@ export default function RoomScreen({
           <button
             className={`tab-btn${mobileTab === "files" ? " active" : ""}`}
             onClick={() => setMobileTab("files")}
+            aria-label="Show files panel"
           >
-            📁 Files
+            <span style={s.tabIcon}>{I.files}</span> Files
           </button>
           <button
             className={`tab-btn${mobileTab === "chat" ? " active" : ""}`}
             onClick={() => setMobileTab("chat")}
+            aria-label="Show chat panel"
           >
-            💬 Chat {chatCount > 0 && `· ${chatCount}`}
+            <span style={s.tabIcon}>{I.chat}</span> Chat {chatCount > 0 && `· ${chatCount}`}
           </button>
         </div>
       </div>
@@ -282,8 +293,9 @@ const s = {
   totalBarFill: { height: "100%", borderRadius: 99, transition: "width 0.3s ease" },
   totalFoot: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" },
   totalSub: { fontSize: "0.66rem", color: "var(--text-muted)", fontFamily: "'Geist Mono', monospace" },
-  parallelToggle: { display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", cursor: "pointer", userSelect: "none" },
+  parallelToggle: { display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", cursor: "pointer", userSelect: "none", minHeight: 32 },
   tabRow: { display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 },
-  tabContent: { flex: 1, overflowY: "auto", minHeight: 0, display: "flex", flexDirection: "column", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "0.75rem", boxShadow: "var(--shadow)" },
-  list: { display: "flex", flexDirection: "column", gap: "0.55rem", overflowY: "auto", flex: 1, minWidth: 0 },
+  tabIcon: { display: "inline-flex", verticalAlign: "-2px", marginRight: "0.3rem" },
+  tabContent: { flex: 1, overflowY: "auto", minHeight: 0, display: "flex", flexDirection: "column", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: "0.75rem", boxShadow: "var(--shadow)" },
+  list: { display: "flex", flexDirection: "column", gap: "0.55rem", overflow: "visible", flex: "none", minWidth: 0 },
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { formatBytes, formatSpeed } from "../constants";
+import EmptyState from "./EmptyState";
 
 function fileType(name = "") {
   const ext = (name.split(".").pop() || "").toLowerCase();
@@ -199,11 +200,11 @@ export default function HistoryPanel({
 
       <div style={s.list}>
         {filtered.length === 0 && (
-          <div className="empty-hint">
-            {history.length === 0
-              ? "No history yet — completed transfers appear here"
-              : "No matches — try a different search or filter"}
-          </div>
+          <EmptyState
+            icon="🕘"
+            title={history.length === 0 ? "No history yet" : "No matches"}
+            sub={history.length === 0 ? "Completed transfers appear here." : "Try a different search or filter."}
+          />
         )}
         {filtered.map((r) => (
           <HistoryRow key={r.id} record={r} onRemove={onRemove} showRoom={filter === "all"} />
@@ -248,7 +249,7 @@ function HistoryRow({ record: r, onRemove, showRoom }) {
 }
 
 const s = {
-  wrap: { display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: "0.45rem" },
+  wrap: { display: "flex", flexDirection: "column", flex: "none", gap: "0.45rem" },
   head: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.3rem 0.1rem", flexShrink: 0 },
   headTitle: { fontSize: "0.75rem", fontWeight: 600, color: "var(--text-2)" },
   headR: { display: "flex", alignItems: "center", gap: "0.25rem" },
@@ -295,7 +296,7 @@ const s = {
   resultLine: { display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.64rem", color: "var(--text-dim)", padding: "0 0.15rem", flexShrink: 0 },
   resetBtn: { background: "none", border: "none", color: "var(--primary)", fontSize: "0.64rem", fontWeight: 700, cursor: "pointer", padding: 0, fontFamily: "inherit" },
 
-  list: { flex: 1, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: "0.4rem", minWidth: 0, minHeight: 0, paddingBottom: "1.5rem" },
+  list: { flex: "none", overflow: "visible", display: "flex", flexDirection: "column", gap: "0.4rem", minWidth: 0, paddingBottom: "0.5rem" },
   row: { borderRadius: 12, padding: "0.6rem 0.75rem", overflow: "hidden", minWidth: 0, flexShrink: 0, background: "var(--surface)", border: "1px solid var(--border)" },
   rowTop: { display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.28rem", minWidth: 0, overflow: "hidden" },
   dir: { fontSize: "0.58rem", fontWeight: 700, fontFamily: "'Geist Mono', monospace", flexShrink: 0 },

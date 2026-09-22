@@ -1,4 +1,5 @@
 import { formatBytes, formatSpeed } from "../constants";
+import EmptyState from "./EmptyState";
 
 function dayKey(ts) {
   const d = new Date(ts);
@@ -56,7 +57,7 @@ export default function AnalyticsPanel({ history, transfers }) {
       </div>
 
       {list.length === 0 ? (
-        <div style={s.empty}>Completed transfers appear here with totals, speeds and compression savings.</div>
+        <EmptyState icon="📊" title="No stats yet" sub="Completed transfers appear here with totals, speeds and compression savings." />
       ) : (
         <>
           <div style={s.cards}>

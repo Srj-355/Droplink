@@ -9,7 +9,7 @@ import JoinScreen from "./screens/JoinScreen";
 import RoomScreen from "./screens/RoomScreen";
 import FAQScreen from "./screens/FAQScreen";
 import Branding from "./components/Branding";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
   const {
@@ -46,14 +46,57 @@ export default function App() {
     peerTyping, completedBlobs,
   } = usePeer({ onTransferComplete });
 
-  // Keep ref in sync with roomCode state
-  roomCodeRef.current = roomCode;
+  useEffect(() => {
+    roomCodeRef.current = roomCode;
+  }, [roomCode]);
 
+  // Remember the last non-FAQ screen so Back never loops faq -> faq,
+  // even if screen changes underneath (e.g. host -> room auto-transition).
   const [prevScreen, setPrevScreen] = useState("home");
+  const lastNonFaqRef = useRef("home");
+  useEffect(() => {
+    if (screen !== "faq") lastNonFaqRef.current = screen;
+  }, [screen]);
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem("droplink-theme");
+      if (saved) return saved;
+      return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    } catch { return "light"; }
+  });
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("droplink-theme", theme); } catch { /* ignore */ }
+  }, [theme]);
 
   const navigateTo = (newScreen) => {
-    setPrevScreen(screen);
+    if (newScreen === screen) return;
+    // Never record faq as the return target — otherwise Back loops faq -> faq.
+    if (screen !== "faq") setPrevScreen(screen);
     setScreen(newScreen);
+  };
+
+  const goBackFromFaq = () => {
+    const target =
+      prevScreen && prevScreen !== "faq" ? prevScreen : lastNonFaqRef.current;
+    setScreen(target && target !== "faq" ? target : "home");
+  };
+
+  // Logo click: from FAQ just go back (don't kill an active room/host session);
+  // otherwise leave the room as before.
+  const handleLogoClick = () => {
+    if (screen === "faq") goBackFromFaq();
+    else leaveRoom();
+  };
+
+  const copyShareLink = () => {
+    if (!shareUrl) return;
+    navigator.clipboard?.writeText(shareUrl).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(() => {});
   };
 
   return (
@@ -63,7 +106,7 @@ export default function App() {
       {/* ── App shell topbar ── */}
       <header className="app-topbar">
         <div className="app-topbar-inner">
-          <Branding onGoHome={leaveRoom} compact />
+          <Branding onGoHome={handleLogoClick} compact />
           <div className="app-topbar-center">
             {screen === "room" && roomCode && (
               <>
@@ -85,8 +128,21 @@ export default function App() {
             )}
           </div>
           <div className="app-topbar-right">
-            <button className="topbar-link" onClick={() => navigateTo("faq")}>How it works</button>
-            <button className="topbar-link" onClick={() => navigateTo("faq")}>FAQ</button>
+            {shareUrl && (screen === "host" || screen === "room") && (
+              <button className="btn btn-primary" style={{ padding: "0.4rem 0.9rem", fontSize: "0.74rem" }} onClick={copyShareLink} title="Copy invite link">
+                {linkCopied ? "✓ Copied" : "Copy link"}
+              </button>
+            )}
+            <button className="topbar-link" onClick={() => navigateTo("faq")} aria-label="Open FAQ">FAQ</button>
+            <button
+              className="btn-icon"
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              style={{ width: 34, height: 34 }}
+            >
+              {theme === "dark" ? "☀" : "☾"}
+            </button>
           </div>
         </div>
       </header>
@@ -162,7 +218,7 @@ export default function App() {
         )}
 
         {screen === "faq" && (
-          <FAQScreen onBack={() => setScreen(prevScreen)} />
+          <FAQScreen onBack={goBackFromFaq} />
         )}
 
       </div>

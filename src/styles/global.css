@@ -52,6 +52,7 @@
   --text-2: #3A3B3C;
   --text-muted: #65676B;
   --text-dim: #8A8D91;
+  --chat-bg: #FBFCFE;
 
   --r-xs: 8px;
   --r-sm: 12px;
@@ -711,3 +712,55 @@ select:focus {
 @media (max-width: 760px) {
   input:not(.inp-large) { font-size: 16px; }
 }
+
+/* ── Mobile compact room header + touch targets ── */
+.tab-btn { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 760px) {
+  .btn-icon { width: 36px; height: 36px; }
+  .room-header { padding: 0.55rem 0; }
+  .room-header-main { gap: 0.5rem !important; padding: 0.3rem 0.6rem 0.3rem 0.35rem !important; }
+  .room-header-sub { display: none; }
+  .room-code-badge { padding: 0.22rem 0.55rem; font-size: 0.66rem; }
+  .tab-btn { min-height: 40px; font-size: 0.78rem; }
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] {
+  --bg: #0F1115;
+  --bg-alt: #1C1E24;
+  --surface: #17191F;
+  --surface-hover: #20232C;
+  --border: #2A2D37;
+  --border-hover: #3A3E4B;
+  --border-focus: #4C8DFF;
+  --text: #E8EAED;
+  --text-2: #C9CDD3;
+  --text-muted: #9AA0AA;
+  --text-dim: #6E747E;
+  --chat-bg: #12141A;
+  --send-light: #16294D;
+  --send-border: #2A4A8A;
+  --receive-light: #251A4D;
+  --receive-border: #4A3390;
+  --brand-gradient-soft: linear-gradient(135deg, #16294D 0%, #251A4D 100%);
+  --green-bg: #12301F;
+  --green-border: #1F5C36;
+  --amber-bg: #33240A;
+  --amber-border: #6B4B12;
+  --rose-bg: #3A1219;
+  --rose-border: #7A2432;
+  --info-bg: #0F2A3D;
+  --info-border: #1D4E73;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+[data-theme="dark"] .bg-wrap {
+  background:
+    radial-gradient(600px 320px at 15% -5%, rgba(24,119,242,0.18), transparent 60%),
+    radial-gradient(600px 320px at 85% 0%, rgba(123,47,247,0.14), transparent 60%),
+    var(--bg);
+}
+[data-theme="dark"] .app-topbar { background: rgba(23,25,31,0.88); }
+[data-theme="dark"] .inp { background: var(--surface-hover); }
+[data-theme="dark"] canvas { opacity: 0.9; }
