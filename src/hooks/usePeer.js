@@ -44,7 +44,18 @@ const TYPE_CHUNK = 0x02;
 const SIGNAL_FALLBACK_MS = 8000;
 
 function getPeerOptions(mode) {
-  if (mode === "public") return { debug: 0 }; // PeerJS public cloud defaults
+  // Public cloud defaults, but KEEP our ICE_SERVERS (STUN+TURN).
+  // Without this, cross-NAT fallback loses the TURN relay and sticks on "Connecting…".
+  if (mode === "public") {
+    return {
+      debug: 0,
+      config: {
+        iceServers: ICE_SERVERS,
+        iceTransportPolicy: "all",
+        sdpSemantics: "unified-plan",
+      },
+    };
+  }
   return buildPeerOptions();
 }
 
@@ -182,6 +193,9 @@ export function usePeer({ onTransferComplete } = {}) {
   const signalModeRef = useRef("custom"); // "custom" → private server, "public" → PeerJS cloud fallback
   const signalTimerRef = useRef(null);
   const statsIntervalRef = useRef(null);
+  // Host listens on BOTH servers with the same code so a plain 6-digit
+  // code works no matter which server the joiner tries first.
+  const hostPeersRef = useRef([]);
 
   const addMessage = useCallback((msg) => {
     const id = msg.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -283,6 +297,9 @@ export function usePeer({ onTransferComplete } = {}) {
 
   // Creates a Peer on the private server, auto-falling back to the public
   // PeerJS cloud if the private server doesn't answer in time (cold start).
+  // NOTE: room codes only exist on ONE server, so the invite link carries
+  // ?sig=custom|public and is updated on fallback — otherwise host and
+  // joiner end up on different servers and stick on "Connecting…".
   const spawnPeer = useCallback((idOrUndefined, wire, opts = {}) => {
     const allowFallback = opts.allowFallback !== false;
     const p = new Peer(idOrUndefined, getPeerOptions(signalModeRef.current));
@@ -302,6 +319,12 @@ export function usePeer({ onTransferComplete } = {}) {
           setSignalMode("public");
           setPeerError("");
           addMessage({ type: "system", text: "⚠️ Private signal server unreachable — using public relay instead." });
+          // Keep invite link in sync so joiners use the same server.
+          if (isHost.current && targetRoomCode.current) {
+            const url = `${window.location.origin}${window.location.pathname}?room=${targetRoomCode.current}&sig=public`;
+            setShareUrl(url);
+            try { window.history.replaceState({}, "", url); } catch { /* ignore */ }
+          }
           setPeer(spawnPeer(idOrUndefined, wire, { allowFallback: false }));
         }
       }, SIGNAL_FALLBACK_MS);
@@ -423,6 +446,22 @@ export function usePeer({ onTransferComplete } = {}) {
         const newPeer = isHost.current ? new Peer(code, getPeerOptions(signalModeRef.current)) : new Peer(undefined, getPeerOptions(signalModeRef.current));
         p = newPeer;
         setPeer(newPeer);
+        if (isHost.current) {
+          // Keep dual-listening so plain codes keep working after a crash.
+          try {
+            const extra = new Peer(code, getPeerOptions("public"));
+            extra.on("connection", conn => {
+              if (connectedRef.current) {
+                conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); });
+                return;
+              }
+              setupConn.current(conn);
+            });
+            extra.on("disconnected", () => { try { extra.reconnect(); } catch { /* ignore */ } });
+            extra.on("error", () => {});
+            hostPeersRef.current = [newPeer, extra];
+          } catch { hostPeersRef.current = [newPeer]; }
+        }
         newPeer.on("open", id => {
           if (isHost.current) setRoomCode(id);
           _attemptReconnect();
@@ -538,39 +577,104 @@ export function usePeer({ onTransferComplete } = {}) {
   const createRoom = useCallback(() => {
     setPeerError(""); intentionalLeave.current = false; isHost.current = true;
     const code = generateRoomCode();
-    const wireHost = (peer) => {
-      peer.on("open", id => { targetRoomCode.current = id; setRoomCode(id); setShareUrl(`${window.location.origin}${window.location.pathname}?room=${id}`); setPeer(peer); setScreen("host"); window.history.replaceState({}, "", `${window.location.origin}${window.location.pathname}?room=${id}`); });
-      peer.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); peer.reconnect(); });
+    // First open wins — sets code/URL/screen once for both peers.
+    let hostOpened = false;
+    const wireHost = (peer, mode) => {
+      peer.on("open", id => {
+        if (!hostOpened) {
+          hostOpened = true;
+          targetRoomCode.current = id; setRoomCode(id);
+          // No ?sig= needed: host is on both servers, plain 6-digit codes work.
+          const url = `${window.location.origin}${window.location.pathname}?room=${id}`;
+          setShareUrl(url); setScreen("host");
+          try { window.history.replaceState({}, "", url); } catch { /* ignore */ }
+        }
+        // Track actual signaling state per-peer for diagnostics.
+        signalModeRef.current = mode === "public" ? signalModeRef.current : signalModeRef.current;
+      });
+      peer.on("disconnected", () => { console.warn(`[Signal:${mode}] Disconnected. Reconnecting…`); try { peer.reconnect(); } catch { /* ignore */ } });
       peer.on("connection", conn => { if (connectedRef.current) { conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); }); return; } setupConn.current(conn); });
-      peer.on("error", err => { if (!connectedRef.current) setPeerError(`Create failed: ${err.type}`); });
+      peer.on("error", err => {
+        console.warn(`[Signal:${mode}] host peer error: ${err.type}`);
+        // unavailable-id = code collision (rare) — only surface if neither peer opened.
+        if (!hostOpened && !connectedRef.current && err.type !== "unavailable-id") {
+          setPeerError(`Create failed: ${err.type}`);
+        }
+      });
     };
-    setPeer(spawnPeer(code, wireHost));
+    // Register the same code on private server AND public cloud in parallel.
+    // No fallback timer needed — whichever the joiner tries will find us.
+    // Both carry TURN so cross-NAT works on either path.
+    const primary = spawnPeer(code, (p) => wireHost(p, "custom"), { allowFallback: false });
+    setPeer(primary);
+    hostPeersRef.current = [primary];
+    try {
+      const secondary = new Peer(code, getPeerOptions("public"));
+      wireHost(secondary, "public");
+      hostPeersRef.current.push(secondary);
+    } catch (e) {
+      console.warn("[Signal] public host peer failed, custom-only:", e?.message || e);
+    }
   }, [spawnPeer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const joinRoom = useCallback(() => {
     const code = joinCode.trim().toUpperCase(); if (!code) return;
     if (isJoining || connectedRef.current) return;
     setIsJoining(true);
+    // Honor ?sig= from invite link so we start on the same server as host.
+    try {
+      const sig = new URLSearchParams(window.location.search).get("sig");
+      if (sig === "public" || sig === "custom") {
+        signalModeRef.current = sig;
+        setSignalMode(sig);
+      }
+    } catch { /* ignore */ }
     intentionalLeave.current = false; isHost.current = false; targetRoomCode.current = code;
     const wireJoin = (peer) => {
-      peer.on("open", () => { setupConn.current(peer.connect(code, { reliable: true, serialization: "raw" })); setPeer(peer); });
+      peer.on("open", () => {
+        if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+        setupConn.current(peer.connect(code, { reliable: true, serialization: "raw" }));
+        setPeer(peer);
+        // Give ICE+TURN a chance; if still not connected, try the OTHER
+        // signal server once (covers stale ?sig= links after host fallback).
+        if (signalTimerRef.current) clearTimeout(signalTimerRef.current);
+        signalTimerRef.current = setTimeout(() => {
+          signalTimerRef.current = null;
+          if (!connectedRef.current && !intentionalLeave.current) {
+            const other = signalModeRef.current === "custom" ? "public" : "custom";
+            console.warn(`[Signal] No connection on ${signalModeRef.current}, trying ${other}…`);
+            try { peer.destroy(); } catch { /* ignore */ }
+            signalModeRef.current = other;
+            setSignalMode(other);
+            setPeer(spawnPeer(undefined, wireJoin, { allowFallback: false }));
+          }
+        }, SIGNAL_FALLBACK_MS + 4000);
+      });
       peer.on("disconnected", () => { console.warn("[Signals] Disconnected. Reconnecting…"); peer.reconnect(); });
       peer.on("error", err => {
-        // Private server asleep (or host sitting on the public cloud)?
-        // Retry once on the public cloud before giving up.
-        if (!connectedRef.current && signalModeRef.current === "custom") {
-          console.warn(`[Signal] Private server issue (${err.type}). Retrying join on public cloud…`);
-          try { peer.destroy(); } catch { /* ignore */ }
-          if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
-          signalModeRef.current = "public";
-          setSignalMode("public");
-          setPeer(spawnPeer(undefined, wireJoin, { allowFallback: false }));
-          return;
+        // Private server asleep (or host sitting on the other server)?
+        // Retry once on the other server before giving up.
+        if (!connectedRef.current && (err.type === "peer-unavailable" || err.type === "network" || err.type === "server-error" || err.type === "socket-error" || err.type === "socket-closed")) {
+          const other = signalModeRef.current === "custom" ? "public" : "custom";
+          // Only auto-retry once: if we already retried (timer cleared + mode switched), give up.
+          if (!peer._retriedSignal) {
+            console.warn(`[Signal] Join issue (${err.type}) on ${signalModeRef.current}. Retrying on ${other}…`);
+            try { peer.destroy(); } catch { /* ignore */ }
+            if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
+            signalModeRef.current = other;
+            setSignalMode(other);
+            const retryPeer = spawnPeer(undefined, wireJoin, { allowFallback: false });
+            try { retryPeer._retriedSignal = true; } catch { /* ignore */ }
+            try { peer._retriedSignal = true; } catch { /* ignore */ }
+            setPeer(retryPeer);
+            return;
+          }
         }
         setIsJoining(false);
+        if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
         if (!connectedRef.current) {
-          setPeerError(err.type === "peer-unavailable" ? "Room not found or host offline." : `Join failed: ${err.type}`);
-          setTimeout(() => leaveRoomRef.current?.(), 2000);
+          setPeerError(err.type === "peer-unavailable" ? "Room not found — check the 6-digit code or ask host to re-create (host must stay on the waiting screen)." : `Join failed: ${err.type}`);
+          // Stay on join screen so user can retry a plain code without retyping.
         }
       });
     };
@@ -606,7 +710,9 @@ export function usePeer({ onTransferComplete } = {}) {
     reconnectCount.current = 0;
     lastReconnectMsgRef.current = "";
 
-    peerRef.current?.destroy();
+    try { hostPeersRef.current.forEach((p) => { try { p.destroy(); } catch { /* ignore */ } }); } catch { /* ignore */ }
+    hostPeersRef.current = [];
+    try { peerRef.current?.destroy(); } catch { /* ignore */ }
     setPeer(null);
     setConnected(false);
     setMessages([]);
@@ -667,7 +773,13 @@ export function usePeer({ onTransferComplete } = {}) {
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { setLibsReady(true); }, []);
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search).get("room");
+    const qs = new URLSearchParams(window.location.search);
+    const p = qs.get("room");
+    const sig = qs.get("sig");
+    if (sig === "public" || sig === "custom") {
+      signalModeRef.current = sig;
+      setSignalMode(sig);
+    }
     if (p) { setJoinCode(p.toUpperCase()); setScreen("join"); }
   }, []);
   useEffect(() => {
@@ -849,6 +961,7 @@ export function usePeer({ onTransferComplete } = {}) {
   setupConn.current = (connection) => {
     connection.on("open", () => {
       setIsJoining(false);
+      if (signalTimerRef.current) { clearTimeout(signalTimerRef.current); signalTimerRef.current = null; }
       connRef.current = connection; connectedRef.current = true; setConnected(true); setScreen("room");
       reconnectCount.current = 0; setReconnecting(false); lastReconnectMsgRef.current = "";
       if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }

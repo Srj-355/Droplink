@@ -13,6 +13,20 @@ function extractRoomCode(text = "") {
   return text.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH);
 }
 
+// Keep ?sig= in the address bar so the joiner starts on the same
+// signal server as the host (room codes only exist on one server).
+function syncSigFromInvite(text = "") {
+  try {
+    const u = new URL(text);
+    const sig = u.searchParams.get("sig");
+    const room = u.searchParams.get("room");
+    if ((sig === "public" || sig === "custom") && room) {
+      const url = `${window.location.origin}${window.location.pathname}?room=${room.toUpperCase()}&sig=${sig}`;
+      window.history.replaceState({}, "", url);
+    }
+  } catch { /* plain code, nothing to sync */ }
+}
+
 export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peerError, libsReady, isJoining }) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
@@ -57,6 +71,7 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
           if (codes.length > 0) {
             const code = extractRoomCode(codes[0].rawValue);
             if (code) {
+              syncSigFromInvite(codes[0].rawValue);
               setJoinCode(code);
               stopScan();
             }
@@ -79,7 +94,7 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
       const codes = await detector.detect(bmp);
       if (codes.length > 0) {
         const code = extractRoomCode(codes[0].rawValue);
-        if (code) { setJoinCode(code); setScanError(""); return; }
+        if (code) { syncSigFromInvite(codes[0].rawValue); setJoinCode(code); setScanError(""); return; }
       }
       setScanError("No QR found in that image.");
     } catch {
@@ -115,7 +130,16 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
               className="inp"
               placeholder="e.g. AB3X9K"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+              onChange={(e) => {
+                const raw = e.target.value;
+                // Allow pasting full invite link — preserve ?sig= for server matching.
+                if (raw.includes("room=") || raw.includes("http")) {
+                  syncSigFromInvite(raw);
+                  setJoinCode(extractRoomCode(raw));
+                } else {
+                  setJoinCode(raw.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+                }
+              }}
               onKeyDown={(e) => e.key === "Enter" && !isJoining && onJoin()}
               maxLength={ROOM_CODE_LENGTH} autoFocus
               disabled={isJoining}
