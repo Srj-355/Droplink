@@ -30,50 +30,51 @@ export function shouldCompressFile(file) {
 
 /**
  * Compresses an ArrayBuffer using deflate-raw.
+ * NOTE: writer.write() must receive a Uint8Array (not a raw ArrayBuffer)
+ * and must be awaited before close(), otherwise the stream closes empty
+ * and callers see 0-byte on-wire sizes.
  */
 export async function compressChunk(buffer) {
+  const input = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer || 0);
+  if (input.byteLength === 0) return new ArrayBuffer(0);
   const cs = new CompressionStream('deflate-raw');
+  const outPromise = new Response(cs.readable).arrayBuffer();
   const writer = cs.writable.getWriter();
-  writer.write(buffer);
-  writer.close();
-  const reader = cs.readable.getReader();
-  const chunks = [];
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    chunks.push(value);
+  try {
+    await writer.write(input);
+    await writer.close();
+  } catch (e) {
+    try { writer.releaseLock(); } catch { /* ignore */ }
+    throw e;
   }
-  const result = new Uint8Array(chunks.reduce((acc, c) => acc + c.length, 0));
-  let offset = 0;
-  for (const c of chunks) {
-    result.set(c, offset);
-    offset += c.length;
+  const out = await outPromise;
+  if (!out || out.byteLength === 0) {
+    throw new Error('Compression produced empty output');
   }
-  return result.buffer;
+  return out;
 }
 
 /**
  * Decompressess an ArrayBuffer using deflate-raw.
  */
 export async function decompressChunk(buffer) {
+  const input = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer || 0);
+  if (input.byteLength === 0) return new ArrayBuffer(0);
   const ds = new DecompressionStream('deflate-raw');
+  const outPromise = new Response(ds.readable).arrayBuffer();
   const writer = ds.writable.getWriter();
-  writer.write(buffer);
-  writer.close();
-  const reader = ds.readable.getReader();
-  const chunks = [];
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    chunks.push(value);
+  try {
+    await writer.write(input);
+    await writer.close();
+  } catch (e) {
+    try { writer.releaseLock(); } catch { /* ignore */ }
+    throw e;
   }
-  const result = new Uint8Array(chunks.reduce((acc, c) => acc + c.length, 0));
-  let offset = 0;
-  for (const c of chunks) {
-    result.set(c, offset);
-    offset += c.length;
+  const out = await outPromise;
+  if (!out || out.byteLength === 0) {
+    throw new Error('Decompression produced empty output');
   }
-  return result.buffer;
+  return out;
 }
 
 /**

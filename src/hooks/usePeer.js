@@ -525,20 +525,28 @@ export function usePeer({ onTransferComplete } = {}) {
     const sendChunk = async (index, buffer) => {
       const s = sendStates.current[fileId]; if (!s || s.aborted) return;
       let data = buffer;
+      let chunkCompressed = false;
       if (s.useCompression) {
         try {
           const comp = await compressChunk(buffer);
+          if (!comp || comp.byteLength === 0) throw new Error("empty compression output");
           if (index === 0 && (comp.byteLength / buffer.byteLength) > 0.9) {
             console.log("[Compression] Threshold not met on first chunk, disabling compression for this file.");
             s.useCompression = false;
             s.compressionActive = false;
-          } else data = comp;
+          } else { data = comp; chunkCompressed = true; }
         }
-        catch { s.useCompression = false; }
+        catch (e) {
+          console.warn("[Compression] chunk failed, sending raw:", e?.message || e);
+          s.useCompression = false;
+          s.compressionActive = false;
+          data = buffer;
+          chunkCompressed = false;
+        }
       }
       s.rawBytes += buffer.byteLength;
       s.compBytes += data.byteLength;
-      const frame = encodeChunk(fileId, index, data, s.compressionActive);
+      const frame = encodeChunk(fileId, index, data, chunkCompressed);
       s.ackTimers[index] = setTimeout(() => {
         const st = sendStates.current[fileId];
         if (st && !st.aborted && !st.ackedIndexes.has(index)) {
@@ -828,8 +836,14 @@ export function usePeer({ onTransferComplete } = {}) {
   const processQueue = async () => {
     if (processingData.current || dataQueue.current.length === 0) return;
     processingData.current = true;
-    while (dataQueue.current.length > 0) { await _handleDataInternal(dataQueue.current.shift()); }
-    processingData.current = false;
+    try {
+      while (dataQueue.current.length > 0) {
+        try { await _handleDataInternal(dataQueue.current.shift()); }
+        catch (e) { console.error("[Transfer] _handleData failed:", e); }
+      }
+    } finally {
+      processingData.current = false;
+    }
   };
 
   const flushPending = async (fileId) => {
@@ -976,9 +990,15 @@ export function usePeer({ onTransferComplete } = {}) {
       let { fileId, index, chunk, compressed } = frame; const buf = receiveBuffers.current[fileId]; if (!buf) return;
       console.log(`[Transfer] Received chunk ${index} for ${fileId} (${chunk.byteLength}B, Compressed: ${compressed})`);
       connRef.current?.send(encodeJSON({ type: "chunk-ack", fileId, index }));
-      buf.compBytes += chunk.byteLength;
-      if (compressed) chunk = await decompressChunk(chunk);
-      buf.rawBytes += chunk.byteLength;
+      buf.compBytes = (buf.compBytes || 0) + chunk.byteLength;
+      if (compressed) {
+        try { chunk = await decompressChunk(chunk); }
+        catch (e) {
+          console.error(`[Transfer] Decompress failed for chunk ${index}, treating as raw:`, e?.message || e);
+          // keep raw bytes so transfer can still complete instead of stalling
+        }
+      }
+      buf.rawBytes = (buf.rawBytes || 0) + chunk.byteLength;
       if (buf.mode === "stream") {
         buf.pendingChunks.set(index, chunk); buf.received++;
         updateTransfer(fileId, { progress: Math.min(99, Math.floor((buf.received / buf.meta.totalChunks) * 100)) });
