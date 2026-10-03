@@ -9,7 +9,7 @@
 }
 
 :root {
-  /* ── Friendly app palette (Messenger / Dropbox style) ── */
+  /* Friendly app palette (Messenger / Dropbox style) */
   --bg: #F0F2F5;
   --bg-alt: #E4E6EB;
   --surface: #ffffff;
@@ -24,7 +24,7 @@
   --brand-gradient: linear-gradient(135deg, #1877F2 0%, #7B2FF7 100%);
   --brand-gradient-soft: linear-gradient(135deg, #E7F0FE 0%, #EFE7FE 100%);
 
-  /* keep old names for compat — now mapped to brand */
+  /* keep old names for compat - now mapped to brand */
   --send: #1877F2;
   --send-hover: #166FE5;
   --send-light: #E7F0FE;
@@ -111,7 +111,7 @@ body {
   z-index: 1;
 }
 
-/* ── App shell topbar ── */
+/* App shell topbar */
 .app-topbar {
   position: sticky;
   top: 0;
@@ -687,7 +687,7 @@ body {
 .shimmer-input-wrap { position: relative; }
 .shimmer-input-wrap .inp { position: relative; z-index: 1; }
 
-/* ── Consistency pass: responsive home, focus, mobile inputs ── */
+/* Consistency pass: responsive home, focus, mobile inputs */
 @media (max-width: 520px) {
   .home-grid { grid-template-columns: 1fr !important; }
   .home-steps { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
@@ -713,7 +713,7 @@ select:focus {
   input:not(.inp-large) { font-size: 16px; }
 }
 
-/* ── Mobile compact room header + touch targets ── */
+/* Mobile compact room header + touch targets */
 .tab-btn { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
 @media (max-width: 760px) {
   .btn-icon { width: 36px; height: 36px; }
@@ -724,7 +724,7 @@ select:focus {
   .tab-btn { min-height: 40px; font-size: 0.78rem; }
 }
 
-/* ── Dark mode ── */
+/* Dark mode */
 [data-theme="dark"] {
   --bg: #0F1115;
   --bg-alt: #1C1E24;

@@ -1,5 +1,5 @@
 
-// ─── Adaptive chunk sizes ────────────────────────────────────────────────────
+// Adaptive chunk sizes
 // Chrome SCTP maxMessageSize = 262144 bytes (256 KB).
 // Our frame header adds ~28 bytes per chunk. Max safe payload = 128 KB.
 export const CHUNK_TIERS = [
@@ -17,9 +17,7 @@ export const RECONNECT_BASE_MS = 1500;
 export const RECONNECT_TIMEOUT_MS = 15000;
 export const COMPRESSION_ENABLED = true;
 
-// ─── PeerJS Signalling Server ─────────────────────────────────────────────────
-// Self-hosted on Render.com — free, no card required.
-// Fixes rate limits and unreliability of the default public PeerJS cloud.
+// PeerJS Signalling Server
 export const USE_CUSTOM_PEER_SERVER = true;
 
 export const PEER_SERVER = {
@@ -30,19 +28,7 @@ export const PEER_SERVER = {
   key: "droplink",
 };
 
-// ─── ICE / STUN + TURN servers ────────────────────────────────────────────────
-// STUN handles ~70% of connections (same WiFi, simple home NAT).
-// TURN relay (below) covers the rest: strict NAT, mobile data, and
-// college/office WiFi that blocks direct UDP or isolates clients.
-// ─── Free TURN (Metered: 20 GB/month Open Relay, 500 MB/month trial) ──────────
-// Credentials live in the gitignored ".env" file (see ".env.example").
-// They are injected at build time as VITE_TURN_* — restart the dev server
-// and redeploy after changing them. On Vercel, set them in the project
-// dashboard under Environment Variables.
-// TURN entries are only added when all three values are present, so a
-// missing ".env" safely falls back to STUN-only (same-network transfers).
-// Verify BEFORE deploying: node turn-test.mjs <host> 80 <username> <credential>
-// must print "ALLOCATE SUCCESS".
+
 const TURN_HOST = import.meta.env.VITE_TURN_HOST || "";
 const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME || "";
 const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL || "";
@@ -82,7 +68,7 @@ export const ICE_SERVERS = [
     : []),
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 export function getChunkSize(fileSize) {
   for (const t of CHUNK_TIERS) {
     if (fileSize <= t.maxSize) {

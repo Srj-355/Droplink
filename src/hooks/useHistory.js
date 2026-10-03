@@ -16,7 +16,7 @@ function openDB() {
         store.createIndex("timestamp", "timestamp", { unique: false });
         store.createIndex("room", "room", { unique: false });
       } else {
-        // Store already exists — just add the "room" index if missing
+        // Store already exists - just add the "room" index if missing
         const store = e.target.transaction.objectStore(STORE_NAME);
         if (!store.indexNames.contains("room")) {
           store.createIndex("room", "room", { unique: false });
@@ -95,7 +95,7 @@ async function idbDelete(id) {
   });
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// Hook
 export function useHistory() {
   const [history, setHistory] = useState([]);   // all records
   const [loading, setLoading] = useState(true);
@@ -107,7 +107,7 @@ export function useHistory() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Add a completed transfer — caller must pass roomCode
+  // Add a completed transfer - caller must pass roomCode
   const addRecord = useCallback(async (transfer) => {
     const record = {
       id: transfer.id,

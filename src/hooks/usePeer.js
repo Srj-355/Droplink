@@ -40,7 +40,7 @@ const SCTP_WARMUP_MS = 50;
 const TYPE_JSON = 0x01;
 const TYPE_CHUNK = 0x02;
 // How long to wait for the private signal server before falling back
-// to the public PeerJS cloud (covers Render free-tier cold starts).
+// to the public PeerJS cloud.
 const SIGNAL_FALLBACK_MS = 8000;
 
 function getPeerOptions(mode) {
@@ -106,7 +106,7 @@ function decodeFrame(raw) {
 }
 
 export function usePeer({ onTransferComplete } = {}) {
-  // ── 1. Hooks (Consolidated) ─────────────────────────────────────────────────
+  // 1. Hooks (Consolidated)
   const [screen, setScreen] = useState("home");
   const [roomCode, setRoomCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -201,7 +201,7 @@ export function usePeer({ onTransferComplete } = {}) {
 
   const addMessage = useCallback((msg) => {
     const id = msg.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    // dedup by id (stable) — fixes fragile text+time matching
+    // dedup by id (stable) - fixes fragile text+time matching
     if (messagesRef.current.some((m) => m.id === id)) return id;
     setMessages((prev) => {
       if (prev.some((m) => m.id === id)) return prev;
@@ -232,8 +232,8 @@ export function usePeer({ onTransferComplete } = {}) {
     return { speed, eta };
   }, []);
 
-  // ── Connection diagnostics (h): poll RTCPeerConnection.getStats() ──
-  // Read-only side effect — never touches the transfer protocol.
+  // Connection diagnostics (h): poll RTCPeerConnection.getStats()
+  // Read-only side effect - never touches the transfer protocol.
   const pollConnStats = useCallback(async () => {
     try {
       const conn = connRef.current;
@@ -255,7 +255,16 @@ export function usePeer({ onTransferComplete } = {}) {
         else if (s.type === "local-candidate") locals.set(s.id, s);
         else if (s.type === "remote-candidate") remotes.set(s.id, s);
       });
-      pair = pairs.find((p) => p.nominated) || pairs.find((p) => p.state === "succeeded" || p.writable) || pairs[0] || null;
+      const livePairs = pairs.filter((p) => p.state !== "failed" && p.state !== "cancelled");
+      const traffic = (p) => (p.bytesSent || 0) + (p.bytesReceived || 0);
+      const byTrafficDesc = (a, b) => traffic(b) - traffic(a);
+      pair = livePairs.find((p) => p.selected === true)
+        || livePairs.filter((p) => p.nominated && p.state === "succeeded").sort(byTrafficDesc)[0]
+        || livePairs.filter((p) => p.nominated && p.writable).sort(byTrafficDesc)[0]
+        || livePairs.filter((p) => p.state === "succeeded").sort(byTrafficDesc)[0]
+        || livePairs.filter((p) => p.writable).sort(byTrafficDesc)[0]
+        || livePairs.sort(byTrafficDesc)[0]
+        || pairs[0] || null;
       if (pair) {
         localCand = locals.get(pair.localCandidateId) || null;
         remoteCand = remotes.get(pair.remoteCandidateId) || null;
@@ -298,10 +307,7 @@ export function usePeer({ onTransferComplete } = {}) {
   }, []);
 
   // Creates a Peer on the private server, auto-falling back to the public
-  // PeerJS cloud if the private server doesn't answer in time (cold start).
-  // NOTE: room codes only exist on ONE server, so the invite link carries
-  // ?sig=custom|public and is updated on fallback — otherwise host and
-  // joiner end up on different servers and stick on "Connecting…".
+  // PeerJS cloud if the private server doesn't answer in time.
   const spawnPeer = useCallback((idOrUndefined, wire, opts = {}) => {
     const allowFallback = opts.allowFallback !== false;
     const p = new Peer(idOrUndefined, getPeerOptions(signalModeRef.current));
@@ -582,12 +588,12 @@ export function usePeer({ onTransferComplete } = {}) {
       console.log(`[Transfer] All chunks for "${st.fileName}" dispatched. (Acked: ${st.ackedChunks}/${st.totalChunks})`);
       _checkCompletion(fileId);
     })();
-  }, [updateTransfer, tickSpeed, _checkCompletion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [updateTransfer, tickSpeed, _checkCompletion]); 
 
   const createRoom = useCallback(() => {
     setPeerError(""); intentionalLeave.current = false; isHost.current = true;
     const code = generateRoomCode();
-    // First open wins — sets code/URL/screen once for both peers.
+    // First open wins - sets code/URL/screen once for both peers.
     let hostOpened = false;
     const wireHost = (peer, mode) => {
       peer.on("open", id => {
@@ -606,15 +612,13 @@ export function usePeer({ onTransferComplete } = {}) {
       peer.on("connection", conn => { if (connectedRef.current) { conn.on("open", () => { conn.send(encodeJSON({ type: "room-full" })); setTimeout(() => conn.close(), 500); }); return; } setupConn.current(conn); });
       peer.on("error", err => {
         console.warn(`[Signal:${mode}] host peer error: ${err.type}`);
-        // unavailable-id = code collision (rare) — only surface if neither peer opened.
+        // unavailable-id = code collision (rare) - only surface if neither peer opened.
         if (!hostOpened && !connectedRef.current && err.type !== "unavailable-id") {
           setPeerError(`Create failed: ${err.type}`);
         }
       });
     };
     // Register the same code on private server AND public cloud in parallel.
-    // No fallback timer needed — whichever the joiner tries will find us.
-    // Both carry TURN so cross-NAT works on either path.
     const primary = spawnPeer(code, (p) => wireHost(p, "custom"), { allowFallback: false });
     setPeer(primary);
     hostPeersRef.current = [primary];
@@ -779,7 +783,7 @@ export function usePeer({ onTransferComplete } = {}) {
     updateTransfer(id, { status: "sending", pausedByPeer: false });
     try { connRef.current?.send(encodeJSON({ type: "resume-transfer", fileId: id })); } catch { /* ignore */ }
   }, [updateTransfer]);
-  // Receiver-initiated pause/resume — asks sender to stop/start via protocol
+  // Receiver-initiated pause/resume - asks sender to stop/start via protocol
   const pauseReceive = useCallback((id) => {
     updateTransfer(id, { status: "paused", pausedByPeer: false });
     try { connRef.current?.send(encodeJSON({ type: "pause-transfer", fileId: id })); } catch { /* ignore */ }
@@ -832,7 +836,7 @@ export function usePeer({ onTransferComplete } = {}) {
   useEffect(() => { if (connected) _advanceQueue(); }, [fileQueue, connected, maxParallel, _advanceQueue]);
   useEffect(() => { leaveRoomRef.current = leaveRoom; }, [leaveRoom]);
 
-  // ── 2. Background Handlers ───────────────────────────────────────────────────
+  // 2. Background Handlers
   const processQueue = async () => {
     if (processingData.current || dataQueue.current.length === 0) return;
     processingData.current = true;
@@ -871,7 +875,7 @@ export function usePeer({ onTransferComplete } = {}) {
     if (url) {
       const a = Object.assign(document.createElement("a"), { href: url, download: buf.meta.name });
       document.body.appendChild(a); a.click(); a.remove();
-      // keep URL for "Download again" — revoked on leaveRoom
+      // keep URL for "Download again" - revoked on leaveRoom
     }
     updateTransfer(fileId, { progress: 100, status: "done" });
     addMessage({ type: "system", text: `✅ Received "${buf.meta.name}"` });

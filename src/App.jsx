@@ -1,4 +1,3 @@
-// Triggering redeploy after rollback
 import "./styles/global.css";
 import { useCallback, useRef } from "react";
 import { usePeer } from "./hooks/usePeer";
@@ -73,7 +72,7 @@ export default function App() {
 
   const navigateTo = (newScreen) => {
     if (newScreen === screen) return;
-    // Never record faq as the return target — otherwise Back loops faq -> faq.
+    // Never record faq as the return target - otherwise Back loops faq -> faq.
     if (screen !== "faq") setPrevScreen(screen);
     setScreen(newScreen);
   };
@@ -103,7 +102,7 @@ export default function App() {
     <>
       <div className="bg-wrap" />
 
-      {/* ── App shell topbar ── */}
+      {/* App shell topbar */}
       <header className="app-topbar">
         <div className="app-topbar-inner">
           <Branding onGoHome={handleLogoClick} compact />

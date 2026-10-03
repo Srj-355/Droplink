@@ -132,7 +132,7 @@ export default function JoinScreen({ joinCode, setJoinCode, onJoin, onBack, peer
               value={joinCode}
               onChange={(e) => {
                 const raw = e.target.value;
-                // Allow pasting full invite link — preserve ?sig= for server matching.
+                // Allow pasting full invite link - preserve ?sig= for server matching.
                 if (raw.includes("room=") || raw.includes("http")) {
                   syncSigFromInvite(raw);
                   setJoinCode(extractRoomCode(raw));
